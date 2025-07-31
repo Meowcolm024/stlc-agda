@@ -56,7 +56,7 @@ data _⊢_⦂_ {n} : Context n → Term n → Type → Set where
 
   ⊢abs : ∀ {Γ A B M}
     → Γ ,- A ⊢ M ⦂ B
-      ---------------------
+      ----------------
     → Γ ⊢ ƛ M ⦂ A ⇒ B
 
   ⊢app : ∀ {Γ A B M N}
@@ -81,9 +81,7 @@ data _⊢_⦂_ {n} : Context n → Term n → Type → Set where
     → Γ ⊢ if L M N ⦂ A
 
 data Value {n} : Term n → Set where
-  V-abs : ∀ {M}
-      ------------
-    → Value (ƛ M)
+  V-abs : ∀ {M} → Value (ƛ M)
 
   V-true : Value true
 
@@ -151,4 +149,3 @@ data _—→_ {n} : Term n → Term n → Set where
   β-if₂ : ∀ {M N}
       -------------------
     → if false M N —→ N
-

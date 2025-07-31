@@ -42,14 +42,14 @@ ty-subst (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-subst ⊢L Φ) (ty-subst ⊢M Φ)
 preservation : ∀ {M M' A}
   → ∅ ⊢ M ⦂ A
   → M —→ M'
-    ----------
+    -----------
   → ∅ ⊢ M' ⦂ A
-preservation (⊢app ⊢M ⊢N)        (ξ-app₁ M→M') = ⊢app (preservation ⊢M M→M') ⊢N
+preservation (⊢app ⊢M ⊢N)        (ξ-app₁ M→M')    = ⊢app (preservation ⊢M M→M') ⊢N
 preservation (⊢app ⊢M ⊢N)        (ξ-app₂ VM N→N') = ⊢app ⊢M (preservation ⊢N N→N')
-preservation (⊢app (⊢abs ⊢M) ⊢N) (β-abs VN)    = ty-subst ⊢M λ { Z → ⊢N }
-preservation (⊢if ⊢L ⊢M ⊢N)      (ξ-if L→L')   = ⊢if (preservation ⊢L L→L') ⊢M ⊢N
-preservation (⊢if ⊢L ⊢M ⊢N)      β-if₁         = ⊢M
-preservation (⊢if ⊢L ⊢M ⊢N)      β-if₂         = ⊢N
+preservation (⊢app (⊢abs ⊢M) ⊢N) (β-abs VN)       = ty-subst ⊢M λ { Z → ⊢N }
+preservation (⊢if ⊢L ⊢M ⊢N)      (ξ-if L→L')      = ⊢if (preservation ⊢L L→L') ⊢M ⊢N
+preservation (⊢if ⊢L ⊢M ⊢N)      β-if₁            = ⊢M
+preservation (⊢if ⊢L ⊢M ⊢N)      β-if₂            = ⊢N
 
 data Progress : Term n → Set where
   step : ∀ {M N : Term n}
