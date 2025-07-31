@@ -38,7 +38,7 @@ Irred M = ∀ M' → ¬ (M —→ M')
 𝒢⟦ Γ ⟧ σ = ∀ {x A} → Γ ∋ x ⦂ A → 𝒱⟦ A ⟧ (σ x)
 
 _⊨_⦂_ : Context n → Term n → Type → Set
-Γ ⊨ M ⦂ A = ∀ σ → 𝒢⟦ Γ ⟧ σ → ℰ⟦ A ⟧ (⟪ σ ⟫ M)
+Γ ⊨ M ⦂ A = ∀ σ → 𝒢⟦ Γ ⟧ σ → ℰ⟦ A ⟧ (subst σ M)
 
 M→*M'-irred : ∀ {M M'} → M —→* M' → Irred M → M ≡ M'
 M→*M'-irred (_ ∎)             irredM = refl
@@ -104,14 +104,22 @@ reducible? (if L M N) with reducible? L
     ⟪id⟫M≡M = Eq.subst (λ z → z —→* M') (Eq.sym sub-id) M→*M'
     irredM' = λ M'' z → ¬M'→M'' (M'' , z)
 
--- fundemental property
+-- fundamental property
 ⊢-⊨ : ∀ {Γ : Context n} {M A} → Γ ⊢ M ⦂ A → Γ ⊨ M ⦂ A
 ⊢-⊨ {Γ = Γ ,- B} (⊢var x) σ GG M' (M→*M' , irredM')
   with refl ← M→*M'-irred M→*M' (𝒱-irred (GG x)) = GG x
-⊢-⊨ (⊢abs ⊢M) σ GG M' (M→*M' , irredM') = {!!}
-⊢-⊨ (⊢app ⊢M ⊢N) σ GG M' (M→*M' , irredM') = {!!}
+⊢-⊨ {M = ƛ M} {A = A ⇒ B} (⊢abs ⊢M) σ GG M' (((ƛ ⟪σ⟫M) ∎) , irredM') N VN M'' (st , ir)
+  = ⊢-⊨ ⊢M (N • σ) (λ { Z → VN ; (S x) → GG x }) M'' (st' , ir)
+  where
+    st' : subst (N • σ) M —→* M''
+    st' rewrite Eq.sym (sub-ext-sub {σ = σ} {M = M} {N = N}) = st
+
+⊢-⊨ {M = M · N} (⊢app ⊢M ⊢N) σ GG M' (M→*M' , irredM') = {!!}
+
 ⊢-⊨ ⊢true σ GG M' (M→*M' , irredM')
   with refl ← M→*M'-irred M→*M' (λ { _ () }) = tt
 ⊢-⊨ ⊢false σ GG M' (M→*M' , irredM')
   with refl ← M→*M'-irred M→*M' (λ { _ () }) = tt
+
+-- inspect reduction trace, how?
 ⊢-⊨ (⊢if ⊢L ⊢M ⊢N) σ GG M' (M→*M' , irredM') = {!!}
