@@ -15,8 +15,28 @@ private
   variable
     n m : ℕ
 
-¬⊎-¬× : ∀ {A B : Set} → ¬ (A ⊎ B) → (¬ A) × (¬ B)
-¬⊎-¬× x = (λ z → x (inj₁ z)) , λ z → x (inj₂ z)
+ty-antirename : ∀ {M A} {Δ : Context m}
+  → Δ ⊢ M ⦂ A
+  → ∀ {N ρ} {Γ : Context n} → (∀ {x B} → Δ ∋ ρ x ⦂ B → Γ ∋ x ⦂ B)
+  → M ≡ rename ρ N
+    ---------------
+  → Γ ⊢ N ⦂ A
+ty-antirename (⊢var x)         {N = ` y}        Φ refl = ⊢var (Φ x)
+ty-antirename (⊢abs ⊢M)        {N = ƛ N}        Φ refl = ⊢abs (ty-antirename ⊢M {N = N} (λ { {x = fz} Z → Z ; {x = fs x} (S ∋x) → S (Φ ∋x) }) refl)
+ty-antirename (⊢app ⊢M ⊢M₁)    {N = N · N₁}     Φ refl = ⊢app (ty-antirename ⊢M {N = N} Φ refl) (ty-antirename ⊢M₁ {N = N₁} Φ refl)
+ty-antirename ⊢true            {N = true}       Φ refl = ⊢true
+ty-antirename ⊢false           {N = false}      Φ refl = ⊢false
+ty-antirename (⊢if ⊢M ⊢M₁ ⊢M₂) {N = if N N₁ N₂} Φ refl = ⊢if (ty-antirename ⊢M {N = N} Φ refl) (ty-antirename ⊢M₁ {N = N₁} Φ refl) (ty-antirename ⊢M₂ {N = N₂} Φ refl)
+
+ty-strengthen : ∀ {M A B} {Γ : Context n}
+  → Γ ,- B ⊢ rename fs M ⦂ A
+    -------------------------
+  → Γ ⊢ M ⦂ A
+ty-strengthen ⊢M = ty-antirename ⊢M (λ { {x = fz} (S ∋x) → ∋x ; {x = fs x} (S ∋x) → ∋x }) refl
+
+-----
+-- with conditional renaming
+-----
 
 infix  3 _∈_
 
@@ -28,12 +48,12 @@ x ∈ true     = ⊥
 x ∈ false    = ⊥
 x ∈ if L M N = x ∈ L ⊎ x ∈ M ⊎ x ∈ N
 
-ext⁺ : ∀ (M : Term (suc n)) → (∀ (x : Fin n) → fs x ∈ M → Fin m) → ((x : Fin (suc n)) → x ∈ M → Fin (suc m))
+ext⁺ : ∀ (M : Term (suc n)) → (∀ x → fs x ∈ M → Fin m) → (∀ x → x ∈ M → Fin (suc m))
 ext⁺ M ρ fz     x∈M = fz
 ext⁺ M ρ (fs x) x∈M = fs (ρ x x∈M)
 
 -- conditional rename
-rename⁺ : ∀ (M : Term n) → (∀ (x : Fin n) → x ∈ M → Fin m) → Term m
+rename⁺ : ∀ (M : Term n) → (∀ x → x ∈ M → Fin m) → Term m
 rename⁺ (` x)      ρ = ` ρ x refl
 rename⁺ (ƛ M)      ρ = ƛ rename⁺ M (ext⁺ M ρ)
 rename⁺ (M · N)    ρ = rename⁺ M (λ x z → ρ x (inj₁ z)) · rename⁺ N λ x z → ρ x (inj₂ z)
@@ -56,8 +76,8 @@ ty-rename⁺ (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-rename⁺ ⊢L (λ x∈M → 
                                  (ty-rename⁺ ⊢M (λ x∈M → Φ (inj₂ (inj₁ x∈M))))
                                  (ty-rename⁺ ⊢N (λ x∈M → Φ (inj₂ (inj₂ x∈M))))
 
--- "downshift"
-pred : ∀ (M : Term (suc n)) → ¬ (fz ∈ M) → ∀ (x : Fin (suc n)) → x ∈ M → Fin n
+-- "downshift", giving the condition 0 ∉ M
+pred : ∀ (M : Term (suc n)) → ¬ (fz ∈ M) → (∀ x → x ∈ M → Fin n)
 pred M z fz     x∈M = ⊥-elim (z x∈M)
 pred M z (fs x) x∈M = x
 
@@ -69,12 +89,11 @@ strengthen⁺ : ∀ {M A B} {Γ : Context n}
 strengthen⁺ (⊢var Z)            ev = ⊥-elim (ev refl)
 strengthen⁺ (⊢var (S x))        ev = ⊢var x
 strengthen⁺ {M = ƛ M} (⊢abs ⊢M) ev = ⊢abs (ty-rename⁺ ⊢M λ { x∈M Z → Z ; x∈M (S Z) → S (⊥-elim (ev x∈M)) ; x∈M (S (S x)) → S x })
-strengthen⁺ (⊢app ⊢M ⊢N) ev with p , q ← ¬⊎-¬× ev
-  = ⊢app (ty-rename⁺ ⊢M λ { x∈M Z → ⊥-elim (p x∈M) ; x∈M (S x) → x })
-        (ty-rename⁺ ⊢N λ { x∈M Z → ⊥-elim (q x∈M) ; x∈M (S x) → x })
+strengthen⁺ (⊢app ⊢M ⊢N) ev = ⊢app (ty-rename⁺ ⊢M λ { x∈M Z → ⊥-elim (ev (inj₁ x∈M)) ; x∈M (S x) → x })
+                                  (ty-rename⁺ ⊢N λ { x∈M Z → ⊥-elim (ev (inj₂ x∈M)) ; x∈M (S x) → x })
 strengthen⁺ ⊢true               ev = ⊢true
 strengthen⁺ ⊢false              ev = ⊢false
-strengthen⁺ (⊢if ⊢L ⊢M ⊢N)      ev with p , w ← ¬⊎-¬× ev with q , h ← ¬⊎-¬× w
-  = ⊢if (ty-rename⁺ ⊢L λ { x∈M Z → ⊥-elim (p x∈M) ; x∈M (S x) → x })
-       (ty-rename⁺ ⊢M λ { x∈M Z → ⊥-elim (q x∈M) ; x∈M (S x) → x })
-       (ty-rename⁺ ⊢N λ { x∈M Z → ⊥-elim (h x∈M) ; x∈M (S x) → x })
+strengthen⁺ (⊢if ⊢L ⊢M ⊢N)      ev = ⊢if (ty-rename⁺ ⊢L λ { x∈M Z → ⊥-elim (ev (inj₁ x∈M)) ; x∈M (S x) → x })
+                                        (ty-rename⁺ ⊢M λ { x∈M Z → ⊥-elim (ev (inj₂ (inj₁ x∈M))) ; x∈M (S x) → x })
+                                        (ty-rename⁺ ⊢N λ { x∈M Z → ⊥-elim (ev (inj₂ (inj₂ x∈M))) ; x∈M (S x) → x })
+
