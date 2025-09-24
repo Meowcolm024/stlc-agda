@@ -31,7 +31,7 @@ data Term (n m : ℕ) : Set where
   ƛ_⇒_ : Type n → Term n (suc m) → Term n m
   _·_  : Term n m → Term n m → Term n m
   Λ_   : Term (suc n) m → Term n m
-  _⟨_⟩ : Term (suc n) m → Type n → Term n m
+  _⟨_⟩ : Term n m → Type n → Term n m
 
 ext : ∀ {n m} → (Fin n → Fin m) → Fin (suc n) → Fin (suc m)
 ext ρ fz     = fz
@@ -69,9 +69,8 @@ rename-ty ρ (` x)     = ` x
 rename-ty ρ (ƛ A ⇒ M) = ƛ rename⋆ ρ A ⇒ rename-ty ρ M
 rename-ty ρ (M · N)   = (rename-ty ρ M) · (rename-ty ρ N)
 rename-ty ρ (Λ M)     = Λ rename-ty (ext ρ) M
-rename-ty ρ (M ⟨ A ⟩) = (rename-ty (ext ρ) M) ⟨ rename⋆ ρ A ⟩
+rename-ty ρ (M ⟨ A ⟩) = (rename-ty ρ M) ⟨ rename⋆ ρ A ⟩
 
--- not sure
 rename : ∀ {n m s} → (Fin m → Fin s) → Term n m → Term n s
 rename ρ (lit x)   = lit x
 rename ρ (` x)     = ` ρ x
@@ -93,7 +92,7 @@ subst σ (` x)     = σ x
 subst σ (ƛ A ⇒ M) = ƛ A ⇒ subst (exts σ) M
 subst σ (M · N)   = (subst σ M) · (subst σ N)
 subst σ (Λ M)     = Λ subst (ext-ty σ) M
-subst σ (M ⟨ A ⟩) = subst (ext-ty σ) M ⟨ A ⟩
+subst σ (M ⟨ A ⟩) = subst σ M ⟨ A ⟩
 
 infixl 5 _,⋆
 infixl 4 _,-_
@@ -165,7 +164,7 @@ data _⊢_⦂_ {n m} : Context n m → Term n m → Type n → Set where
     → Γ ⊢ Λ M ⦂ Π A
 
   ⊢tapp : ∀ {Γ M A B}
-    → Γ ⊢ Λ M ⦂ Π A
+    → Γ ⊢ M ⦂ Π A
       ------------------------
     → Γ ⊢ M ⟨ B ⟩ ⦂ (A [ B ])
 
@@ -185,14 +184,49 @@ ty-rename-ty : ∀ {n m} {Γ : Context n m} {M A}
   → Δ ⊢ rename-ty ρ M ⦂ rename⋆ ρ A
 ty-rename-ty ⊢lit Φ Ψ = ⊢lit
 ty-rename-ty (⊢var x) Φ Ψ = ⊢var (Ψ x)
-ty-rename-ty (⊢abs ⊢M) Φ Ψ = ⊢abs (ty-rename-ty ⊢M (λ { (S- x) → S- (Φ x) }) λ { Z → Z ; (S- x) → S- (Ψ x) })
+ty-rename-ty (⊢abs ⊢M) Φ Ψ
+  = ⊢abs (ty-rename-ty ⊢M (λ { (S- x) → S- (Φ x) })
+         λ { Z → Z ; (S- x) → S- (Ψ x) })
 ty-rename-ty (⊢app ⊢M ⊢N) Φ Ψ = ⊢app (ty-rename-ty ⊢M Φ Ψ) (ty-rename-ty ⊢N Φ Ψ)
-ty-rename-ty (⊢tabs ⊢M) {ρ = ρ} {Δ = Δ} Φ Ψ
-  = ⊢tabs (ty-rename-ty ⊢M (λ { Z → Z ; (S⋆ x) → S⋆ (Φ x) }) λ { (S⋆ x) → Eq.subst (λ z → Δ ,⋆ ∋ _ ⦂ z) rename⋆-fs-commute (S⋆ (Ψ x)) })
+ty-rename-ty (⊢tabs ⊢M) {Δ = Δ} Φ Ψ
+  = ⊢tabs (ty-rename-ty ⊢M (λ { Z → Z ; (S⋆ x) → S⋆ (Φ x) })
+          λ { (S⋆ x) → Eq.subst (λ z → Δ ,⋆ ∋ _ ⦂ z) rename⋆-fs-commute (S⋆ (Ψ x)) })
 ty-rename-ty (⊢tapp {A = A} {B = B} ⊢M) {ρ = ρ} Φ Ψ
-  = Eq.subst (λ x → _ ⊢ rename-ty (ext ρ) _ ⟨ rename⋆ ρ _ ⟩ ⦂ x)
-    (rename⋆-subst⋆-commute {A = A} {B = B} {ρ = ρ}) (⊢tapp (ty-rename-ty ⊢M Φ Ψ))
+  = Eq.subst (λ x → _ ⊢ rename-ty ρ _ ⟨ rename⋆ ρ B ⟩ ⦂ x)
+    (rename⋆-subst⋆-commute {A = A} {B = B}) (⊢tapp (ty-rename-ty ⊢M Φ Ψ))
 
+ty-rename : ∀ {n m} {Γ : Context n m} {M A}
+  → Γ ⊢ M ⦂ A
+  → ∀ {s ρ} {Δ : Context n s}
+      → (∀ {x} → Γ ∋ x ⦂⋆ → Δ ∋ x ⦂⋆)
+      → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∋ ρ x ⦂ B)
+    -------------------
+  → Δ ⊢ rename ρ M ⦂ A
+ty-rename ⊢lit         Φ Ψ = ⊢lit
+ty-rename (⊢var x)     Φ Ψ = ⊢var (Ψ x)
+ty-rename (⊢abs ⊢M)    Φ Ψ = ⊢abs (ty-rename ⊢M (λ { (S- x) → S- (Φ x)}) λ { Z → Z ; (S- x) → S- (Ψ x) })
+ty-rename (⊢app ⊢M ⊢N) Φ Ψ = ⊢app (ty-rename ⊢M Φ Ψ) (ty-rename ⊢N Φ Ψ)
+ty-rename (⊢tabs ⊢M)   Φ Ψ = ⊢tabs (ty-rename ⊢M (λ { Z → Z ; (S⋆ x) → S⋆ (Φ x) }) λ { (S⋆ x) → S⋆ (Ψ x) })
+ty-rename (⊢tapp ⊢M)   Φ Ψ = ⊢tapp (ty-rename ⊢M Φ Ψ)
+
+∋-unique : ∀ {n m} {Γ : Context n m} {x A A'}
+       → Γ ∋ x ⦂ A → Γ ∋ x ⦂ A' → A ≡ A'
+∋-unique Z      Z       = refl
+∋-unique (S⋆ x) (S⋆ x') rewrite ∋-unique x x' = refl
+∋-unique (S- x) (S- x') = ∋-unique x x'
+
+⊢unique : ∀ {n m} {Γ : Context n m} {M A A'}
+      → Γ ⊢ M ⦂ A → Γ ⊢ M ⦂ A' → A ≡ A'
+⊢unique ⊢lit         ⊢lit           = refl
+⊢unique (⊢var x)     (⊢var x')      = ∋-unique x x'
+⊢unique (⊢abs ⊢M)    (⊢abs ⊢M')     rewrite ⊢unique ⊢M ⊢M' = refl
+⊢unique (⊢app ⊢M ⊢N) (⊢app ⊢M' ⊢N') with refl ← ⊢unique ⊢N ⊢N' | refl ← ⊢unique ⊢M ⊢M' = refl
+⊢unique (⊢tabs ⊢M)   (⊢tabs ⊢M')    with refl ← ⊢unique ⊢M ⊢M'  = refl
+⊢unique (⊢tapp ⊢M)   (⊢tapp ⊢M')    with refl ← ⊢unique ⊢M ⊢M' = refl
+
+
+
+{-
 postulate
   ext-≡-inj : ∀ {n m} {ρ : Fin n → Fin m}
             → (∀ {x y} → ρ x ≡ ρ y → x ≡ y)
@@ -210,21 +244,6 @@ postulate
 
 ∋-fz-uniq : ∀ {n m} {Γ : Context n m} {A B} → Γ ,- A ∋ fz ⦂ B → A ≡ B
 ∋-fz-uniq Z = refl
-
-∋-uniq : ∀ {n m} {Γ : Context n m} {x A A'}
-       → Γ ∋ x ⦂ A → Γ ∋ x ⦂ A' → A ≡ A'
-∋-uniq Z Z = refl
-∋-uniq (S⋆ x) (S⋆ x') rewrite ∋-uniq x x' = refl
-∋-uniq (S- x) (S- x') = ∋-uniq x x'
-
-⊢uniq : ∀ {n m} {Γ : Context n m} {M A A'}
-      → Γ ⊢ M ⦂ A → Γ ⊢ M ⦂ A' → A ≡ A'
-⊢uniq ⊢lit ⊢lit = refl
-⊢uniq (⊢var x) (⊢var x₁) = ∋-uniq x x₁
-⊢uniq (⊢abs ⊢M) (⊢abs ⊢M') rewrite ⊢uniq ⊢M ⊢M' = refl
-⊢uniq (⊢app ⊢M ⊢N) (⊢app ⊢M' ⊢N') with refl ← ⊢uniq ⊢N ⊢N' | refl ← ⊢uniq ⊢M ⊢M' = refl
-⊢uniq (⊢tabs ⊢M) (⊢tabs ⊢M') with refl ← ⊢uniq ⊢M ⊢M'  = refl
-⊢uniq (⊢tapp ⊢M) (⊢tapp ⊢M') with refl ← ⊢uniq ⊢M ⊢M' = refl
 
 ty-antirename-ty : ∀ {r m} {Δ : Context r m} {M A}
   → Δ ⊢ M ⦂ A
@@ -254,4 +273,5 @@ ty-antirename-ty (⊢tabs ⊢M) {N = Λ N} {B = Π B} I Φ Ψ refl refl
     (λ { {x = fz} Z → Z ; {x = fs x} (S⋆ ∋x) → S⋆ (Φ ∋x) })
     (λ { ∋x → {!!} })
     refl refl)
-ty-antirename-ty (⊢tapp (⊢tabs ⊢M)) {N = N ⟨ T ⟩} {B = B} I Φ Ψ refl ev₂ = {!!}
+ty-antirename-ty (⊢tapp ⊢M) {N = N ⟨ T ⟩} {B = B} I Φ Ψ refl ev₂ = {!!}
+-}
