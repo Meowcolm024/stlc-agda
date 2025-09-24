@@ -151,7 +151,7 @@ cong-sub {M = if L M N} ss refl
   | cong-sub {M = N} ss refl
   = refl
 
-cong-sub-zero : ∀ {M M' : Term n} → M ≡ M' → subst-zero M ≡ (subst-zero M')
+cong-sub-zero : ∀ {M M' : Term n} → M ≡ M' → subst-zero M ≡ subst-zero M'
 cong-sub-zero mm' = extensionality λ x → cong (λ z → subst-zero z x) mm'
 
 cong-cons : ∀ {M N : Term m} {σ τ : Subst n m}
@@ -414,7 +414,7 @@ subst-commute {N = N} {M} {σ} =
     ⟪ σ ⟫ (N [ M ])
   ∎
 
-rename-subst-commute : ∀ {N : Term (suc n) }{M : Term n} {ρ : Rename n m}
+rename-subst-commute : ∀ {N : Term (suc n)} {M : Term n} {ρ : Rename n m}
   → (rename (ext ρ) N) [ rename ρ M ] ≡ rename ρ (N [ M ])
 rename-subst-commute {N = N} {M} {ρ} =
   begin
@@ -456,3 +456,18 @@ sub-ext-sub {σ = σ} {M} {N}
   rewrite ext-subst-cons {M = N} {σ = σ}
   | sub-sub {M = M} {σ₁ = exts σ} {σ₂ = subst-zero N}
   = refl
+
+rename-fs-commute : ∀ {ρ : Rename n m} {M}
+  → rename fs (rename ρ M) ≡ rename (ext ρ) (rename fs M)
+rename-fs-commute {ρ = ρ} {M = M} =
+  begin
+    rename fs (rename ρ M)
+  ≡⟨ cong (rename fs) rename-subst-ren ⟩
+    rename fs (⟪ ren ρ ⟫ M)
+  ≡⟨ sym (commute-subst-rename {M = M} {σ = ren ρ} λ {x} → refl) ⟩
+    ⟪ exts (ren ρ) ⟫ (rename fs M)
+  ≡⟨ cong (λ x → ⟪ x ⟫ (rename fs M)) (sym ren-ext) ⟩
+    ⟪ ren (ext ρ) ⟫ (rename fs M)
+  ≡⟨ sym rename-subst-ren ⟩
+    rename (ext ρ) (rename fs M)
+  ∎

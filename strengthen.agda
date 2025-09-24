@@ -5,15 +5,25 @@ open import stlc
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; _≢_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Fin as Fin using (Fin) renaming (zero to fz; suc to fs)
+open import Data.Fin as Fin using (Fin; _<?_) renaming (zero to fz; suc to fs)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂) renaming ([_,_] to case-⊎)
-open import Relation.Nullary using (¬_; contradiction; contraposition)
+open import Relation.Nullary using (Dec; yes; no; ¬_; contradiction; contraposition)
 open import Data.Empty using (⊥; ⊥-elim)
 
 private
   variable
     n m : ℕ
+
+infix  3 _∈_
+
+_∈_ : Fin n → Term n → Set
+x ∈ (` y)    = x ≡ y
+x ∈ (ƛ M)    = fs x ∈ M
+x ∈ (M · N)  = x ∈ M ⊎ x ∈ N
+x ∈ true     = ⊥
+x ∈ false    = ⊥
+x ∈ if L M N = x ∈ L ⊎ x ∈ M ⊎ x ∈ N
 
 ty-antirename : ∀ {M A} {Δ : Context m}
   → Δ ⊢ M ⦂ A
@@ -34,19 +44,45 @@ ty-strengthen : ∀ {M A B} {Γ : Context n}
   → Γ ⊢ M ⦂ A
 ty-strengthen ⊢M = ty-antirename ⊢M (λ { {x = fz} (S ∋x) → ∋x ; {x = fs x} (S ∋x) → ∋x }) refl
 
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+
+punchIn-∃ : ∀ (k x : Fin (suc n)) → k ≢ x → ∃[ y ] x ≡ Fin.punchIn k y
+punchIn-∃ fz          fz          ev = ⊥-elim (ev refl)
+punchIn-∃ fz          (fs x)      ev = x , refl
+punchIn-∃ (fs fz)     fz          ev = fz , refl
+punchIn-∃ (fs (fs k)) fz          ev = fz , refl
+punchIn-∃ (fs fz)     (fs fz)     ev = ⊥-elim (ev refl)
+punchIn-∃ (fs (fs k)) (fs fz)     ev with y , w ← punchIn-∃ (fs k) fz (λ z → ev (Eq.cong fs z)) = fs y , Eq.cong fs w
+punchIn-∃ (fs fz) (fs (fs x))     ev with y , w ← punchIn-∃ fz (fs x) (λ z → ev (Eq.cong fs z)) = fs y , Eq.cong fs w
+punchIn-∃ (fs (fs k)) (fs (fs x)) ev with y , w ← punchIn-∃ (fs k) (fs x) (λ z → ev (Eq.cong fs z)) = fs y , Eq.cong fs w
+
+k∉M-∃N : ∀ {k} {M : Term (suc n)} → ¬ (k ∈ M) → ∃[ N ] M ≡ rename (Fin.punchIn k) N
+k∉M-∃N {k = k} {M = ` x} ev with y , w ← punchIn-∃ k x ev = ` y , Eq.cong `_ w
+k∉M-∃N {M = ƛ M} ev with N , refl ← k∉M-∃N {M = M} ev = ƛ N , Eq.cong (λ x → ƛ rename x N) (extensionality lemma)
+  where
+    lemma : ∀ {k} (x : Fin (suc n)) → Fin.punchIn (fs k) x ≡ ext (Fin.punchIn k) x
+    lemma {k = fz}   fz     = refl
+    lemma {k = fs k} fz     = refl
+    lemma {k = fz}   (fs x) = refl
+    lemma {k = fs k} (fs x) = refl
+k∉M-∃N {M = M · M₁} ev
+  with N , refl ← k∉M-∃N {M = M} (λ z → ev (inj₁ z)) | N₁ , refl ← k∉M-∃N {M = M₁} (λ z → ev (inj₂ z))
+  = N · N₁ , refl
+k∉M-∃N {M = true} ev = true , refl
+k∉M-∃N {M = false} ev = false , refl
+k∉M-∃N {M = if M M₁ M₂} ev
+  with N , refl ← k∉M-∃N {M = M} (λ z → ev (inj₁ z))
+  | N₁ , refl ← k∉M-∃N {M = M₁} (λ z → ev (inj₂ (inj₁ z)))
+  | N₂ , refl ← k∉M-∃N {M = M₂} (λ z → ev (inj₂ (inj₂ z)))
+  = if N N₁ N₂ , refl
+
 -----
 -- with conditional renaming
 -----
-
-infix  3 _∈_
-
-_∈_ : Fin n → Term n → Set
-x ∈ (` y)    = x ≡ y
-x ∈ (ƛ M)    = fs x ∈ M
-x ∈ (M · N)  = x ∈ M ⊎ x ∈ N
-x ∈ true     = ⊥
-x ∈ false    = ⊥
-x ∈ if L M N = x ∈ L ⊎ x ∈ M ⊎ x ∈ N
 
 ext⁺ : ∀ (M : Term (suc n)) → (∀ x → fs x ∈ M → Fin m) → (∀ x → x ∈ M → Fin (suc m))
 ext⁺ M ρ fz     x∈M = fz
