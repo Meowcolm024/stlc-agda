@@ -14,6 +14,8 @@ open import Relation.Nullary using (¬_; contradiction; Dec; yes; no)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Unit using (⊤; tt)
 
+-- reference: https://github.com/tmoux/logical-relations/blob/main/theories/Stlc.v
+
 private
   variable
     n m : ℕ
@@ -43,13 +45,6 @@ _⊨_⦂_ : Context n → Term n → Type → Set
 M→*M'-irred : ∀ {M M'} → M —→* M' → Irred M → M ≡ M'
 M→*M'-irred (_ ∎)             irredM = refl
 M→*M'-irred (_ —→⟨ x ⟩ M→*M') irredM = ⊥-elim (irredM _ x)
-
-—→*ℰ : ∀ {A M M'} → M —→* M' → ℰ⟦ A ⟧ M → ℰ⟦ A ⟧ M'
-—→*ℰ (_ ∎)               EM                         = EM
-—→*ℰ (L —→⟨ L→M ⟩ M→*M') EL M'' (M'→*M'' , irredM') = EL M'' ((_ —→⟨ L→M ⟩ —→*-trans M→*M' M'→*M'') , irredM')
-
--- —→*⊨ : ∀ {A M M'} → M —→* M' → ∅ ⊨ M ⦂ A → ∅ ⊨ M' ⦂ A
--- —→*⊨ M→*M' ⊨M σ GG = —→*ℰ {!!} (⊨M σ GG)
 
 𝒱-irred : ∀ {M A} → 𝒱⟦ A ⟧ M → Irred M
 𝒱-irred {M = true}  {A = bool}  VM M' ()
@@ -95,6 +90,35 @@ reducible? (if L M N) with reducible? L
 ... | false = yes (N , β-if₂)
 ... | if L₁ L₂ L₃ = no λ { (_ , ξ-if if→if') → irredM (_ , if→if') }
 
+V-irred : ∀ {M} → Value M → Irred M
+V-irred V-abs M' ()
+V-irred V-true M' ()
+V-irred V-false M' ()
+
+appL-step : ∀ {M N V} → M · N —→* V → Irred V → ∃[ M' ] ((M —→* M') × Irred M')
+appL-step ((M · N) ∎) ir = M , (M ∎) , λ { M' x → ir (M' · N) (ξ-app₁ x) }
+appL-step ((M · N) —→⟨ ξ-app₁ x ⟩ st) ir with M' , stM' , irM' ← appL-step st ir = M' , step—→ M stM' x , irM'
+appL-step ((M · N) —→⟨ ξ-app₂ x x₁ ⟩ st) ir = appL-step st ir
+appL-step (((ƛ M) · N) —→⟨ β-abs x ⟩ st) ir = ƛ M , (ƛ M ∎) , λ { M' () }
+
+appR-step : ∀ {M N V} → (ƛ M) · N —→* V → Irred V → ∃[ N' ] ((N —→* N') × Irred N')
+appR-step (((ƛ M) · N) ∎) ir = N , (N ∎) , λ { M' x → ir ((ƛ M) · M') (ξ-app₂ V-abs x) }
+appR-step (((ƛ M) · N) —→⟨ ξ-app₂ x x₁ ⟩ st) ir with N' , stN' , irN' ← appR-step st ir = N' , step—→ N stN' x₁ , irN'
+appR-step (((ƛ M) · N) —→⟨ β-abs x ⟩ st) ir = N , (N ∎) , V-irred x
+
+if-step : ∀ {L M N V} → if L M N —→* V → Irred V → ∃[ L' ] ((L —→* L') × Irred L')
+if-step ((if L M N) ∎) ir = L , (L ∎) , (λ M' z → ir (if M' M N) (ξ-if z))
+if-step ((if L M N) —→⟨ ξ-if x ⟩ st) ir with L'' , stL'' , irL'' ← if-step st ir = L'' , (L —→⟨ x ⟩ stL'') , irL''
+if-step ((if true M N) —→⟨ β-if₁ ⟩ st) ir = true , (true ∎) , λ { x () }
+if-step ((if false M N) —→⟨ β-if₂ ⟩ st) ir = false , (false ∎) , λ {x () }
+
+𝒱⟦bool⟧-C : ∀ {M} → 𝒱⟦ bool ⟧ M → M ≡ true ⊎ M ≡ false
+𝒱⟦bool⟧-C {M = true} VM = inj₁ refl
+𝒱⟦bool⟧-C {M = false} VM = inj₂ refl
+
+𝒱⟦abs⟧-C : ∀ {M A B} → 𝒱⟦ A ⇒ B ⟧ M → ∃[ N ] (M ≡ ƛ N)
+𝒱⟦abs⟧-C {M = ƛ M} VM = M , refl
+
 -- adequacy
 ⊨-safe : ∀ {M A} → ∅ ⊨ M ⦂ A → Safe M
 ⊨-safe ⊨M M' M→*M' with reducible? M'
@@ -113,13 +137,28 @@ reducible? (if L M N) with reducible? L
   where
     st' : subst (N • σ) M —→* M''
     st' rewrite Eq.sym (sub-ext-sub {σ = σ} {M = M} {N = N}) = st
-
-⊢-⊨ {M = M · N} (⊢app ⊢M ⊢N) σ GG M' (M→*M' , irredM') = {!!}
-
+⊢-⊨ {M = M · N} (⊢app {A = A} {B = B} ⊢M ⊢N) σ GG M' (M→*M' , irredM')
+  with L' , σL→L' , il ← appL-step M→*M' irredM'
+  with M'' , refl ← 𝒱⟦abs⟧-C (⊢-⊨ ⊢M σ GG L' (σL→L' , il))
+  with LM' , ssl , ssr ← confluence M→*M' (—→*-trans (appL-cong σL→L') ((ƛ M'') · subst σ N ∎))
+  with refl ← M→*M'-irred ssl irredM'
+  with R' , σR→R' , ir ← appR-step ssr irredM'
+  with VN ← ⊢-⊨ ⊢N σ GG R' (σR→R' , ir)
+  with M'' , stl , str ← confluence M→*M' (—→*-trans (appL-cong σL→L') (—→*-trans (appR-cong V-abs σR→R') ((ƛ M'') · R' —→⟨ β-abs (𝒱-value VN) ⟩ _ ∎)))
+  with refl ← M→*M'-irred stl irredM'
+  = ⊢-⊨ ⊢M σ GG L' (σL→L' , il) R' VN M' (str , irredM')
 ⊢-⊨ ⊢true σ GG M' (M→*M' , irredM')
   with refl ← M→*M'-irred M→*M' (λ { _ () }) = tt
 ⊢-⊨ ⊢false σ GG M' (M→*M' , irredM')
   with refl ← M→*M'-irred M→*M' (λ { _ () }) = tt
-
--- inspect reduction trace, how?
-⊢-⊨ (⊢if ⊢L ⊢M ⊢N) σ GG M' (M→*M' , irredM') = {!!}
+⊢-⊨ {M = if L M N} (⊢if ⊢L ⊢M ⊢N) σ GG M' (M→*M' , irredM')
+  with L' , σL→L' , il ← if-step M→*M' irredM'
+  with 𝒱⟦bool⟧-C (⊢-⊨ ⊢L σ GG L' (σL→L' , il))
+... | inj₁ refl
+  with M'' , stl , str ← confluence M→*M' (—→*-trans (if-cong σL→L') (_ —→⟨ β-if₁ ⟩ subst σ M ∎))
+  with refl ← M→*M'-irred stl irredM'
+  = ⊢-⊨ ⊢M σ GG M' (str , irredM')
+... | inj₂ refl
+  with M'' , stl , str ← confluence M→*M' (—→*-trans (if-cong σL→L') (_ —→⟨ β-if₂ ⟩ subst σ N ∎))
+  with refl ← M→*M'-irred stl irredM'
+  = ⊢-⊨ ⊢N σ GG M' (str , irredM')

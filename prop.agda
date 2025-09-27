@@ -94,6 +94,9 @@ Canonical-bool : ∀ {M} {Γ : Context n}
 Canonical-bool ⊢true  V-true  = inj₁ refl
 Canonical-bool ⊢false V-false = inj₂ refl
 
+∋-uniq : ∀ {A B} {Γ : Context n} → Γ ,- A ∋ fz ⦂ B → A ≡ B
+∋-uniq Z = refl
+
 —→determ : ∀ {M N N' : Term n}
   → M —→ N
   → M —→ N'
@@ -141,6 +144,13 @@ begin st = st
 —→*-pres : ∀ {A M M'} → ∅ ⊢ M ⦂ A → M —→* M' → ∅ ⊢ M' ⦂ A
 —→*-pres ⊢M (_ ∎)              = ⊢M
 —→*-pres ⊢M (_ —→⟨ x ⟩ M—→*M') = —→*-pres (preservation ⊢M x) M—→*M'
+
+confluence : ∀ {M L R : Term n} → M —→* L → M —→* R → ∃[ N ] (L —→* N) × (R —→* N)
+confluence (M ∎) (_ ∎) = M , (M ∎) , (M ∎)
+confluence (M ∎) (_ —→⟨ x ⟩ R ∎) = R , step—→ M (R ∎) x , (R ∎)
+confluence (M ∎) (_ —→⟨ x ⟩ _ —→⟨ x₁ ⟩ M→R) = _ , step—→ M (step—→ _ M→R x₁) x , (_ ∎)
+confluence (M —→⟨ x ⟩ M→L) (.M ∎) = _ , (_ ∎) , step—→ M M→L x
+confluence (M —→⟨ x ⟩ M→L) (.M —→⟨ x₁ ⟩ M→R) rewrite —→determ x x₁ = confluence M→L M→R
 
 if-cong : ∀ {L L' M N : Term n}
   → L —→* L'
