@@ -1,6 +1,6 @@
-module subst where
+module stlc.subst where
 
-open import stlc
+open import stlc.base
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; sym; cong; cong-app)
@@ -13,8 +13,6 @@ open import Relation.Nullary using (¬_; contradiction)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Unit using (⊤; tt)
 open import Function.Base using (id; _∘_)
-
--- copied from: https://plfa.github.io/Substitution/
 
 private
   variable
@@ -132,7 +130,7 @@ cong-exts {σ = σ}{σ'} ss = extensionality λ x → lemma {x = x}
      lemma {fs x} = cong (rename fs) (cong-app ss x)
 
 cong-sub : ∀ {σ σ' : Subst n m} {M M' : Term n}
-  → σ ≡ σ' →  M ≡ M'
+  → σ ≡ σ' → M ≡ M'
     ------------------------
   → subst σ M ≡ subst σ' M'
 cong-sub {M = ` x} ss refl = cong-app ss x
@@ -156,7 +154,7 @@ cong-sub-zero mm' = extensionality λ x → cong (λ z → subst-zero z x) mm'
 
 cong-cons : ∀ {M N : Term m} {σ τ : Subst n m}
   → M ≡ N → σ ≡ τ
-    --------------------------------
+    ------------------
   → (M • σ) ≡ (N • τ)
 cong-cons {n = n} {M = M} {N} {σ} {τ} refl st = extensionality lemma
   where
@@ -276,17 +274,17 @@ compose-ext : ∀ {ρ : Rename m r} {ρ' : Rename n m}
 compose-ext = extensionality λ x → lemma {x = x}
   where
     lemma : ∀ {ρ : Rename m r} {ρ' : Rename n m} {x : Fin (suc n)}
-      → ((ext ρ) ∘ (ext ρ')) x ≡ ext (ρ ∘ ρ') x
+          → ((ext ρ) ∘ (ext ρ')) x ≡ ext (ρ ∘ ρ') x
     lemma {x = fz} = refl
     lemma {x = fs x} = refl
 
 compose-rename : ∀ {M : Term n} {ρ : Rename m r} {ρ' : Rename n m}
-  → rename ρ (rename ρ' M) ≡ rename (ρ ∘ ρ') M
+               → rename ρ (rename ρ' M) ≡ rename (ρ ∘ ρ') M
 compose-rename {M = ` x} = refl
-compose-rename {M = ƛ M} {ρ} {ρ'} = cong ƛ_ G
+compose-rename {M = ƛ M} {ρ} {ρ'} = cong ƛ_ lemma
   where
-    G : rename (ext ρ) (rename (ext ρ') M) ≡ rename (ext (ρ ∘ ρ')) M
-    G rewrite compose-rename {M = M} {ρ = ext ρ} {ρ' = ext ρ'}
+    lemma : rename (ext ρ) (rename (ext ρ') M) ≡ rename (ext (ρ ∘ ρ')) M
+    lemma rewrite compose-rename {M = M} {ρ = ext ρ} {ρ' = ext ρ'}
       | cong-rename {M = M} (compose-ext {ρ = ρ} {ρ' = ρ'}) = refl
 compose-rename {M = M · N} {ρ} {ρ'}
   rewrite compose-rename {M = M} {ρ} {ρ'}
@@ -306,11 +304,11 @@ commute-subst-rename : ∀ {M : Term n} {σ : Subst n m}
   → subst (exts σ) (rename ρ₁ M) ≡ rename ρ₂ (subst σ M)
 commute-subst-rename {M = ` x} H = H
 commute-subst-rename {n = n} {M = ƛ M} {σ} {ρ₁} {ρ₂} H =
-  cong ƛ_ (commute-subst-rename {M = M} {exts σ} {ext ρ₁} {ext ρ₂} (λ {x} → H' {x}))
+  cong ƛ_ (commute-subst-rename {M = M} {exts σ} {ext ρ₁} {ext ρ₂} (λ {x} → lemma {x}))
   where
-     H' : ∀ {x : Fin (suc n)} → exts (exts σ) (ext ρ₁ x) ≡ rename (ext ρ₂) (exts σ x)
-     H' {x = fz} = refl
-     H' {x = fs x}
+     lemma : ∀ {x : Fin (suc n)} → exts (exts σ) (ext ρ₁ x) ≡ rename (ext ρ₂) (exts σ x)
+     lemma {x = fz} = refl
+     lemma {x = fs x}
        rewrite cong (rename fs) (H {x = x})
        | compose-rename {M = σ x} {ρ = fs} {ρ' = ρ₂}
        | compose-rename {M = σ x} {ρ = ext ρ₂} {ρ' = fs}
@@ -328,18 +326,18 @@ commute-subst-rename {M = if L M N} {σ} {ρ₁} {ρ₂} H
   = refl
 
 exts-seq : ∀ {σ₁ : Subst n m} {σ₂ : Subst m r}
-  → (exts σ₁ ⨟ exts σ₂) ≡ exts (σ₁ ⨟ σ₂)
+         → (exts σ₁ ⨟ exts σ₂) ≡ exts (σ₁ ⨟ σ₂)
 exts-seq {n = n} = extensionality λ x → lemma {x = x}
   where
     lemma : ∀ {x : Fin (suc n)} {σ₁ : Subst n m} {σ₂ : Subst m r}
-      → (exts σ₁ ⨟ exts σ₂) x ≡ exts (σ₁ ⨟ σ₂) x
+          → (exts σ₁ ⨟ exts σ₂) x ≡ exts (σ₁ ⨟ σ₂) x
     lemma {x = fz} = refl
     lemma {x = fs x} {σ₁ = σ₁} {σ₂ = σ₂}
       rewrite commute-subst-rename {M = σ₁ x} {σ = σ₂} {ρ₁ = fs} {ρ₂ = fs} refl
       = refl
 
 sub-sub : ∀ {M : Term n} {σ₁ : Subst n m} {σ₂ : Subst m r}
-  → ⟪ σ₂ ⟫ (⟪ σ₁ ⟫ M) ≡ ⟪ σ₁ ⨟ σ₂ ⟫ M
+        → ⟪ σ₂ ⟫ (⟪ σ₁ ⟫ M) ≡ ⟪ σ₁ ⨟ σ₂ ⟫ M
 sub-sub {M = ` x} = refl
 sub-sub {M = ƛ M} {σ₁} {σ₂}
   rewrite sub-sub {M = M} {σ₁ = exts σ₁} {σ₂ = exts σ₂}
@@ -358,14 +356,14 @@ sub-sub {M = if L M N} {σ₁} {σ₂}
   = refl
 
 rename-subst : ∀ {M : Term n} {ρ : Rename n m} {σ : Subst m r}
-  → ⟪ σ ⟫ (rename ρ M) ≡ ⟪ σ ∘ ρ ⟫ M
+             → ⟪ σ ⟫ (rename ρ M) ≡ ⟪ σ ∘ ρ ⟫ M
 rename-subst {M = M} {ρ} {σ}
   rewrite rename-subst-ren {ρ = ρ} {M = M}
   | sub-sub {M = M} {σ₁ = ren ρ} {σ₂ = σ}
   = refl
 
 sub-assoc : ∀ {σ : Subst n m} {τ : Subst m r} {θ : Subst r s}
-  → (σ ⨟ τ) ⨟ θ ≡ (σ ⨟ τ ⨟ θ)
+          → (σ ⨟ τ) ⨟ θ ≡ (σ ⨟ τ ⨟ θ)
 sub-assoc {n = n} {σ = σ} {τ} {θ} = extensionality λ x → lemma {x = x}
   where
     lemma : ∀ {x : Fin n} → ((σ ⨟ τ) ⨟ θ) x ≡ (σ ⨟ τ ⨟ θ) x
@@ -382,7 +380,7 @@ subst-zero-exts-cons {σ = σ} {M}
   = refl
 
 subst-commute : ∀ {N : Term (suc n)} {M : Term n} {σ : Subst n m }
-  → ⟪ exts σ ⟫ N [ ⟪ σ ⟫ M ] ≡ ⟪ σ ⟫ (N [ M ])
+              → ⟪ exts σ ⟫ N [ ⟪ σ ⟫ M ] ≡ ⟪ σ ⟫ (N [ M ])
 subst-commute {N = N} {M} {σ} =
   begin
     ⟪ exts σ ⟫ N [ ⟪ σ ⟫ M ]
@@ -415,7 +413,7 @@ subst-commute {N = N} {M} {σ} =
   ∎
 
 rename-subst-commute : ∀ {N : Term (suc n)} {M : Term n} {ρ : Rename n m}
-  → (rename (ext ρ) N) [ rename ρ M ] ≡ rename ρ (N [ M ])
+                     → (rename (ext ρ) N) [ rename ρ M ] ≡ rename ρ (N [ M ])
 rename-subst-commute {N = N} {M} {ρ} =
   begin
     (rename (ext ρ) N) [ rename ρ M ]
@@ -434,16 +432,15 @@ _〔_〕 : Term (suc (suc n)) → Term n → Term (suc n)
 _〔_〕 N M = subst (exts (subst-zero M)) N
 
 substitution : ∀ {M : Term (suc (suc n))} {N : Term (suc n)} {L : Term n}
-  → (M [ N ]) [ L ] ≡ (M 〔 L 〕) [ (N [ L ]) ]
-substitution {M = M} {N = N} {L = L} =
-   sym (subst-commute {N = M} {M = N} {σ = subst-zero L})
+             → (M [ N ]) [ L ] ≡ (M 〔 L 〕) [ (N [ L ]) ]
+substitution {M = M} {N = N} {L = L} = sym (subst-commute {N = M} {M = N} {σ = subst-zero L})
 
 subst-zero-exts : ∀ {σ : Subst n m} {M : Term m} {x : Fin n}
   → (subst (subst-zero M) ∘ exts σ) (fs x) ≡ σ x
 subst-zero-exts {σ = σ} {x = x} = cong-app (subst-zero-exts-cons {σ = σ}) (fs x)
 
 ext-subst-cons : ∀ {M : Term m} {σ : Subst n m}
-  → M • σ ≡ ext-subst σ M
+               → M • σ ≡ ext-subst σ M
 ext-subst-cons {n = n} {M = M} {σ = σ} = extensionality λ x → lemma {x = x}
   where
     lemma : ∀ {x : Fin (suc n)} → (M • σ) x ≡ ext-subst σ M x
@@ -451,14 +448,14 @@ ext-subst-cons {n = n} {M = M} {σ = σ} = extensionality λ x → lemma {x = x}
     lemma {x = fs x} rewrite subst-zero-exts {σ = σ} {M} {x} = refl
 
 sub-ext-sub : ∀ {σ : Fin n → Term m} {M N}
-  → subst (N • σ) M ≡ subst (exts σ) M [ N ]
+            → subst (N • σ) M ≡ subst (exts σ) M [ N ]
 sub-ext-sub {σ = σ} {M} {N}
   rewrite ext-subst-cons {M = N} {σ = σ}
   | sub-sub {M = M} {σ₁ = exts σ} {σ₂ = subst-zero N}
   = refl
 
 rename-fs-commute : ∀ {ρ : Rename n m} {M}
-  → rename fs (rename ρ M) ≡ rename (ext ρ) (rename fs M)
+                  → rename fs (rename ρ M) ≡ rename (ext ρ) (rename fs M)
 rename-fs-commute {ρ = ρ} {M = M} =
   begin
     rename fs (rename ρ M)
