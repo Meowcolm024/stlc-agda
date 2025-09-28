@@ -40,9 +40,9 @@ ty-subst ⊢true          Φ = ⊢true
 ty-subst ⊢false         Φ = ⊢false
 ty-subst (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-subst ⊢L Φ) (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
 
----------------------
--- Basic Proerties --
----------------------
+----------------------
+-- Basic Properties --
+----------------------
 
 preservation : ∀ {M M' A}
   → ∅ ⊢ M ⦂ A

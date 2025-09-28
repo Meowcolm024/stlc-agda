@@ -41,6 +41,7 @@ ty-strengthen ⊢M = ty-antirename ⊢M (λ { {x = fz} (S ∋x) → ∋x ; {x = 
 
 infix  3 _∈_
 
+-- variable x is used in term M
 _∈_ : Fin n → Term n → Set
 x ∈ (` y)    = x ≡ y
 x ∈ (ƛ M)    = fs x ∈ M

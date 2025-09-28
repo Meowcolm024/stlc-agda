@@ -5,16 +5,16 @@ module stlc where
 import stlc.base
 
 -- basic lemmas and proofs
--- progress, preservation ect
+-- progress, preservation etc
 import stlc.prop
 
--- environment base bigstep semantic
+-- environment-base bigstep semantic
 import stlc.bigstep
 
 -- (weak) normalization
 import stlc.norm
 
--- semantic type safety
+-- semantic type soundness
 import stlc.safety
 
 -- anti-rename

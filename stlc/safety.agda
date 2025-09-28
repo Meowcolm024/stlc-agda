@@ -130,7 +130,11 @@ conf—↛join L→*M L→*M' —↛M
 
 -- fundamental property
 -- syntactic typing implies semantic typing
-⊢-⊨ : ∀ {Γ : Context n} {M A} → Γ ⊢ M ⦂ A → Γ ⊨ M ⦂ A
+⊢-⊨ : ∀ {Γ : Context n} {M A}
+  → Γ ⊢ M ⦂ A
+    ----------
+  → Γ ⊨ M ⦂ A
+
 ⊢-⊨ {Γ = Γ ,- B} (⊢var x) σ GG M' (M→*M' , —↛M') with refl ← —↛-M→*M M→*M' (𝒱→—↛ (GG x)) = GG x
 ⊢-⊨ {M = ƛ M} {A = A ⇒ B} (⊢abs ⊢M) σ GG M' ((ƛ ⟪σ⟫M ∎) , —↛M') N VN M'' (MN→M' , —↛M'')
   = ⊢-⊨ ⊢M (N • σ) (λ { Z → VN ; (S x) → GG x }) M'' (⟪N•σ⟫M→*M'' , —↛M'')
