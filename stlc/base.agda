@@ -147,3 +147,27 @@ data _—→_ {n} : Term n → Term n → Set where
   β-if₂ : ∀ {M N}
       ------------------
     → if false M N —→ N
+
+infix  3 _—→*_
+
+data _—→*_ {n} : Term n → Term n → Set where
+  stop : ∀ (M : Term n)
+      ----------------
+    → M —→* M
+
+  step—→ : ∀ (L : Term n) {M N}
+    → M —→* N
+    → L —→ M
+      ---------
+    → L —→* N
+
+module —→*-Reasoning where
+  infix  1 begin_
+  infixr 2 _—→⟨_⟩_
+  infix  3 _∎
+
+  pattern _∎ M = stop M
+  pattern _—→⟨_⟩_ L LM MN = step—→ L MN LM
+
+  begin_ : ∀ {n} {M N : Term n} → M —→* N → M —→* N
+  begin st = st

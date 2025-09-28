@@ -2,7 +2,7 @@ module stlc.norm where
 
 open import stlc.base
 open import stlc.prop
-open stlc.prop.—→*-Reasoning
+open —→*-Reasoning
 open import stlc.subst
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -25,10 +25,12 @@ data Halts (M : Term n) : Set where
       --------
     → Halts M
 
+-- logical relation predicate for normalization
 𝒩_⟦_⟧ : Type → Term 0 → Set
 𝒩 bool  ⟦ M ⟧ = ∅ ⊢ M ⦂ bool  × Halts M
 𝒩 A ⇒ B ⟦ M ⟧ = ∅ ⊢ M ⦂ A ⇒ B × Halts M × (∀ {N} → 𝒩 A ⟦ N ⟧ → 𝒩 B ⟦ M · N ⟧)
 
+-- well typed substitution
 _⊨_ : (Fin n → Term 0) → Context n → Set
 σ ⊨ Γ = ∀ {x B} → Γ ∋ x ⦂ B → 𝒩 B ⟦ σ x ⟧
 
@@ -80,11 +82,13 @@ _⊨_ : (Fin n → Term 0) → Context n → Set
 ⊢—→*𝒩' ⊢M (_ —→⟨ x ⟩ M—→*M') nn = ⊢—→𝒩' ⊢M x (⊢—→*𝒩' (preservation ⊢M x) M—→*M' nn)
 
 -- adequacy
+-- normalizing term halts
 𝒩-halts : ∀ {M A} → 𝒩 A ⟦ M ⟧ → Halts M
 𝒩-halts {A = bool}  (⊢M , HM)        = HM
 𝒩-halts {A = A ⇒ B} (⊢M , nn' , HMN) = nn'
 
 -- fundamental property
+-- well typed term is normalizing
 ⊢𝒩 : ∀ {Γ : Context n} {σ : Fin n → Term 0} {M A}
   → Γ ⊢ M ⦂ A → σ ⊨ Γ
     ------------------
@@ -99,7 +103,7 @@ _⊨_ : (Fin n → Term 0) → Context n → Set
         lemma : (ƛ subst (exts σ) M) · N —→* subst (N' • σ) M
         lemma rewrite sub-ext-sub {σ = σ} {M = M} {N = N'}
           = —→*-trans (appR-cong N—→*N')
-                      (step—→ ((ƛ subst (exts σ) M) · N') ((subst (exts σ) M [ N' ]) ∎) (β-abs VN'))
+              (step—→ ((ƛ subst (exts σ) M) · N') ((subst (exts σ) M [ N' ]) ∎) (β-abs VN'))
 ⊢𝒩 (⊢app ⊢M ⊢N) σ⊨Γ with ⊢σM , HσM , H ← ⊢𝒩 ⊢M σ⊨Γ = H (⊢𝒩 ⊢N σ⊨Γ)
 ⊢𝒩 {σ = σ} ⊢true  σ⊨Γ = ⊢true , halts (subst σ true ∎) V-true
 ⊢𝒩 {σ = σ} ⊢false σ⊨Γ = ⊢false , halts (subst σ false ∎) V-false

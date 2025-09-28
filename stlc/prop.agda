@@ -1,6 +1,7 @@
 module stlc.prop where
 
 open import stlc.base
+open —→*-Reasoning
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
@@ -38,6 +39,10 @@ ty-subst (⊢app ⊢M ⊢N)   Φ = ⊢app (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
 ty-subst ⊢true          Φ = ⊢true
 ty-subst ⊢false         Φ = ⊢false
 ty-subst (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-subst ⊢L Φ) (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
+
+---------------------
+-- Basic Proerties --
+---------------------
 
 preservation : ∀ {M M' A}
   → ∅ ⊢ M ⦂ A
@@ -117,31 +122,9 @@ V-¬→ V-false ()
 —→-determ β-if₁        β-if₁         = refl
 —→-determ β-if₂        β-if₂         = refl
 
-infix  3 _—→*_
-
-data _—→*_ : Term n → Term n → Set where
-  stop : ∀ (M : Term n)
-      ----------------
-    → M —→* M
-
-  step—→ : ∀ (L : Term n) {M N}
-    → M —→* N
-    → L —→ M
-      ---------
-    → L —→* N
-
-module —→*-Reasoning where
-  infix  1 begin_
-  infixr 2 _—→⟨_⟩_
-  infix  3 _∎
-
-  pattern _∎ M = stop M
-  pattern _—→⟨_⟩_ L LM MN = step—→ L MN LM
-
-  begin_ : ∀ {M N : Term n} → M —→* N → M —→* N
-  begin st = st
-
-open —→*-Reasoning
+---------------
+-- Multistep --
+---------------
 
 —→*-trans : ∀ {L M N : Term n}
   → L —→* M → M —→* N
@@ -183,6 +166,10 @@ appR-cong : ∀ {M} {N N' : Term n}
   → (ƛ M) · N —→* (ƛ M) · N'
 appR-cong (N ∎)                = _ · N ∎
 appR-cong (N —→⟨ N→N₁ ⟩ N→*N') = step—→ (_ · N) (appR-cong N→*N') (ξ-app₂ N→N₁)
+
+----------------
+-- Evaluation --
+----------------
 
 record Gas : Set where
   constructor gas

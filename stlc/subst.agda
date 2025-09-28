@@ -25,7 +25,7 @@ postulate
     → f ≡ g
 
 -----------------
--- definitions --
+-- Definitions --
 -----------------
 
 Rename : ℕ → ℕ → Set
@@ -61,7 +61,7 @@ ext-subst : Subst n m → Term m → Subst (suc n) m
 ext-subst σ M = subst (subst-zero M) ∘ exts σ
 
 ------------
--- lemmas --
+-- Lemmas --
 ------------
 
 sub-head : ∀ {M} {σ : Subst n m} → ⟪ M • σ ⟫ (` fz) ≡ M

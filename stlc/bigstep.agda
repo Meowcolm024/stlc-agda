@@ -2,7 +2,7 @@ module stlc.bigstep where
 
 open import stlc.base
 open import stlc.prop
-open stlc.prop.—→*-Reasoning
+open —→*-Reasoning
 open import stlc.subst
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -31,7 +31,7 @@ _,'_ : ∀ {n} → ClosEnv n → Clos → ClosEnv (suc n)
 (γ ,' c) fz     = c
 (γ ,' c) (fs x) = γ x
 
-infix  3 _⊢_⇓_
+infix  4 _⊢_⇓_
 
 data _⊢_⇓_ : ∀ {n} → ClosEnv n → Term n → Clos → Set where
   ⇓-var : ∀ {n} {γ : ClosEnv n} {x V}
@@ -126,8 +126,8 @@ Clos≈Value {⟨ ƛ M' ∣ γ ⟩} {ƛ M}   V≈M = V-abs
       σLM→*N' : subst σ L · subst σ M —→* N'
       σLM→*N' rewrite Eq.sym (sub-sub {M = N} {σ₁ = exts σ'} {σ₂ = subst-zero M'})
         = —→*-trans (appL-cong L—→*L')
-         (—→*-trans (appR-cong M—→*M')
-                    (step—→ ((ƛ subst (exts σ') N) · M') N—→*N' (β-abs (Clos≈Value U≈M'))))
+            (—→*-trans (appR-cong M—→*M')
+              (step—→ ((ƛ subst (exts σ') N) · M') N—→*N' (β-abs (Clos≈Value U≈M'))))
 ⇓→—→*×≈ {σ = σ} ⇓-true γ≈ₑσ = true , (subst σ true ∎) , tt
 ⇓→—→*×≈ {σ = σ} ⇓-false γ≈ₑσ = false , (subst σ false ∎) , tt
 ⇓→—→*×≈ (⇓-if₁ M⇓t M⇓V) γ≈ₑσ with ⇓→—→*×≈ M⇓t γ≈ₑσ | ⇓→—→*×≈ M⇓V γ≈ₑσ
