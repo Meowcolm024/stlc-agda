@@ -2,7 +2,6 @@ module stlc.bigstep where
 
 open import stlc.base
 open import stlc.prop
-open —→*-Reasoning
 open import stlc.subst
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -14,6 +13,10 @@ open import Relation.Nullary using (¬_; contradiction)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Unit using (⊤; tt)
 open import Function.Base using (_∘_)
+
+open typing
+open smallstep
+open multistep
 
 ClosEnv : (n : ℕ) → Set
 
@@ -108,7 +111,6 @@ Clos≈Value {⟨ ƛ M' ∣ γ ⟩} {ƛ M}   V≈M = V-abs
   → (γ ,' V) ≈ₑ (ext-subst σ N)
 ≈ₑ-ext γ≈ₑσ V≈N fz     = V≈N
 ≈ₑ-ext {σ = σ} {N} γ≈ₑσ V≈N (fs x) rewrite subst-zero-exts {σ = σ} {M = N} {x = x} = γ≈ₑσ x
-
 
 ⇓→—→*×≈ : ∀ {n} {γ : ClosEnv n} {σ : Fin n → Term 0} {M V}
   → γ ⊢ M ⇓ V → γ ≈ₑ σ

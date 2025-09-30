@@ -1,7 +1,6 @@
 module stlc.prop where
 
 open import stlc.base
-open —→*-Reasoning
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
@@ -15,6 +14,8 @@ open import Data.Empty using (⊥; ⊥-elim)
 private
   variable
     n m : ℕ
+
+open stlc.base.typing
 
 ty-rename : ∀ {M A} {Γ : Context n}
   → Γ ⊢ M ⦂ A
@@ -43,6 +44,8 @@ ty-subst (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-subst ⊢L Φ) (ty-subst ⊢M Φ)
 ----------------------
 -- Basic Properties --
 ----------------------
+
+open stlc.base.smallstep
 
 preservation : ∀ {M M' A}
   → ∅ ⊢ M ⦂ A
@@ -126,6 +129,8 @@ V-¬→ V-false ()
 -- Multistep --
 ---------------
 
+open stlc.base.multistep
+
 —→*-trans : ∀ {L M N : Term n}
   → L —→* M → M —→* N
     ------------------
@@ -171,35 +176,42 @@ appR-cong (N —→⟨ N→N₁ ⟩ N→*N') = step—→ (_ · N) (appR-cong N�
 -- Evaluation --
 ----------------
 
-record Gas : Set where
-  constructor gas
-  field
-    amount : ℕ
+module evaluation where
+  open stlc.base.multistep
 
-data Finished (N : Term 0) : Set where
-   done :
-       Value N
-       -----------
-     → Finished N
+  record Gas : Set where
+    constructor gas
+    field
+      amount : ℕ
 
-   out-of-gas :
-       -----------
-       Finished N
+  data Finished (N : Term 0) : Set where
+    done :
+      Value N
+        -----------
+      → Finished N
 
-data Steps : Term 0 → Set where
-  steps : ∀ {L N}
-    → L —→* N
-    → Finished N
-      ------------
-    → Steps L
+    out-of-gas :
+        -----------
+        Finished N
 
-eval : ∀ {M A}
-  → Gas
-  → ∅ ⊢ M ⦂ A
-    -----------
-  → Steps M
-eval {M} (gas zero)    ⊢M                   = steps (M ∎) out-of-gas
-eval {M} (gas (suc g)) ⊢M with progress ⊢M
-... | done VM                               = steps (M ∎) (done VM)
-... | step M→N with eval (gas g) (preservation ⊢M M→N)
-...    | steps N→*L fin                     = steps (M —→⟨ M→N ⟩ N→*L) fin
+  data Steps : Term 0 → Set where
+    steps : ∀ {L N}
+      → L —→* N
+      → Finished N
+        ------------
+      → Steps L
+
+  eval : ∀ {M A}
+    → Gas
+    → ∅ ⊢ M ⦂ A
+      -----------
+    → Steps M
+  eval {M} (gas zero)    ⊢M                   = steps (M ∎) out-of-gas
+  eval {M} (gas (suc g)) ⊢M with progress ⊢M
+  ... | done VM                               = steps (M ∎) (done VM)
+  ... | step M→N with eval (gas g) (preservation ⊢M M→N)
+  ...    | steps N→*L fin                     = steps (M —→⟨ M→N ⟩ N→*L) fin
+
+--------------
+-- Parallel --
+--------------

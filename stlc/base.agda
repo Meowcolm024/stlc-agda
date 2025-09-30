@@ -47,45 +47,6 @@ data _∋_⦂_ : ∀ {n} → Context n → Fin n → Type → Set where
       --------------------
     → (Γ ,- B) ∋ fs x ⦂ A
 
-infix  4 _⊢_⦂_
-
-data _⊢_⦂_ {n} : Context n → Term n → Type → Set where
-  ⊢var : ∀ {Γ x A}
-    → Γ ∋ x ⦂ A
-      ------------
-    → Γ ⊢ ` x ⦂ A
-
-  ⊢abs : ∀ {Γ A B M}
-    → Γ ,- A ⊢ M ⦂ B
-      ----------------
-    → Γ ⊢ ƛ M ⦂ A ⇒ B
-
-  ⊢app : ∀ {Γ A B M N}
-    → Γ ⊢ M ⦂ A ⇒ B
-    → Γ ⊢ N ⦂ A
-      --------------
-    → Γ ⊢ M · N ⦂ B
-
-  ⊢true : ∀ {Γ}
-      ----------------
-    → Γ ⊢ true ⦂ bool
-
-  ⊢false : ∀ {Γ}
-      -----------------
-    → Γ ⊢ false ⦂ bool
-
-  ⊢if : ∀ {Γ L M N A}
-    → Γ ⊢ L ⦂ bool
-    → Γ ⊢ M ⦂ A
-    → Γ ⊢ N ⦂ A
-      -----------------
-    → Γ ⊢ if L M N ⦂ A
-
-data Value {n} : Term n → Set where
-  V-abs   : ∀ {M} → Value (ƛ M)
-  V-true  : Value true
-  V-false : Value false
-
 ext : ∀ {n m : ℕ} → (Fin n → Fin m) → Fin (suc n) → Fin (suc m)
 ext ρ fz     = fz
 ext ρ (fs x) = fs (ρ x)
@@ -117,57 +78,152 @@ subst-zero N (fs x) = ` x
 _[_] : ∀ {n} → Term (suc n) → Term n → Term n
 M [ N ] = subst (subst-zero N) M
 
-infix  4 _—→_
+module typing where
+  infix  4 _⊢_⦂_
 
-data _—→_ {n} : Term n → Term n → Set where
-  ξ-app₁ : ∀ {M M' N}
-    → M —→ M'
-      ----------------
-    → M · N —→ M' · N
+  data _⊢_⦂_ {n} : Context n → Term n → Type → Set where
+    ⊢var : ∀ {Γ x A}
+      → Γ ∋ x ⦂ A
+        ------------
+      → Γ ⊢ ` x ⦂ A
 
-  ξ-app₂ : ∀ {M N N'}
-    → N —→ N'
-      ------------------------
-    → (ƛ M) · N —→ (ƛ M) · N'
+    ⊢abs : ∀ {Γ A B M}
+      → Γ ,- A ⊢ M ⦂ B
+        ----------------
+      → Γ ⊢ ƛ M ⦂ A ⇒ B
 
-  β-abs : ∀ {M N}
-    → Value N
-      ---------------------
-    → (ƛ M) · N —→ M [ N ]
+    ⊢app : ∀ {Γ A B M N}
+      → Γ ⊢ M ⦂ A ⇒ B
+      → Γ ⊢ N ⦂ A
+        --------------
+      → Γ ⊢ M · N ⦂ B
 
-  ξ-if : ∀ {L L' M N}
-    → L —→ L'
-      ----------------------
-    → if L M N —→ if L' M N
+    ⊢true : ∀ {Γ}
+        ----------------
+      → Γ ⊢ true ⦂ bool
 
-  β-if₁ : ∀ {M N}
-      -----------------
-    → if true M N —→ M
+    ⊢false : ∀ {Γ}
+        -----------------
+      → Γ ⊢ false ⦂ bool
 
-  β-if₂ : ∀ {M N}
-      ------------------
-    → if false M N —→ N
+    ⊢if : ∀ {Γ L M N A}
+      → Γ ⊢ L ⦂ bool
+      → Γ ⊢ M ⦂ A
+      → Γ ⊢ N ⦂ A
+        -----------------
+      → Γ ⊢ if L M N ⦂ A
 
-infix  3 _—→*_
+-- weak reduction
+module smallstep where
+  infix  4 _—→_
 
-data _—→*_ {n} : Term n → Term n → Set where
-  stop : ∀ (M : Term n)
-      ----------------
-    → M —→* M
+  data Value {n} : Term n → Set where
+    V-abs   : ∀ {M} → Value (ƛ M)
+    V-true  : Value true
+    V-false : Value false
 
-  step—→ : ∀ (L : Term n) {M N}
-    → M —→* N
-    → L —→ M
-      ---------
-    → L —→* N
+  data _—→_ {n} : Term n → Term n → Set where
+    ξ-app₁ : ∀ {M M' N}
+      → M —→ M'
+        ----------------
+      → M · N —→ M' · N
 
-module —→*-Reasoning where
+    ξ-app₂ : ∀ {M N N'}
+      → N —→ N'
+        ------------------------
+      → (ƛ M) · N —→ (ƛ M) · N'
+
+    β-abs : ∀ {M N}
+      → Value N
+        ---------------------
+      → (ƛ M) · N —→ M [ N ]
+
+    ξ-if : ∀ {L L' M N}
+      → L —→ L'
+        ----------------------
+      → if L M N —→ if L' M N
+
+    β-if₁ : ∀ {M N}
+        -----------------
+      → if true M N —→ M
+
+    β-if₂ : ∀ {M N}
+        ------------------
+      → if false M N —→ N
+
+module multistep where
+  open smallstep
+
+  infix  3 _—→*_
   infix  1 begin_
   infixr 2 _—→⟨_⟩_
   infix  3 _∎
 
-  pattern _∎ M = stop M
+  data _—→*_ {n} : Term n → Term n → Set where
+    _∎ : ∀ (M : Term n)
+        ------------------
+      → M —→* M
+
+    step—→ : ∀ (L : Term n) {M N}
+      → M —→* N
+      → L —→ M
+        --------
+      → L —→* N
+
   pattern _—→⟨_⟩_ L LM MN = step—→ L MN LM
 
   begin_ : ∀ {n} {M N : Term n} → M —→* N → M —→* N
   begin st = st
+
+-- parallel reduction
+module parallel where
+  infix  4 _⇛_
+
+  data _⇛_ {n} : Term n → Term n → Set where
+    ⇛-refl : ∀ {M}
+        ------
+      → M ⇛ M
+
+    ⇛-app : ∀ {M M' N N'}
+      → M ⇛ M'
+      → N ⇛ N'
+        ----------------
+      → M · N ⇛ M' · N'
+
+    ⇛-if : ∀ {L L' M M' N N'}
+      → L ⇛ L'
+      → M ⇛ M'
+      → N ⇛ N'
+        -----------------------
+      → if L M N ⇛ if L' M' N'
+
+    ⇛-beta : ∀ {M M' N N'}
+      → M ⇛ M'
+      → N ⇛ N'
+        ----------------------
+      → (ƛ M) · N ⇛ M' [ N' ]
+
+    ⇛-if-true : ∀ {M M' N}
+      → M ⇛ M'
+        -----------------
+      → if true M N ⇛ M'
+
+    ⇛-if-false : ∀ {M N N'}
+      → N ⇛ N'
+        ------------------
+      → if false M N ⇛ N'
+
+  infix  2 _⇛*_
+  infixr 2 _⇛⟨_⟩_
+  infix  3 _∎
+
+  data _⇛*_ {n} : Term n → Term n → Set where
+    _∎ : ∀ (M : Term n)
+       --------
+      → M ⇛* M
+
+    _⇛⟨_⟩_ : ∀ (L : Term n) {M N}
+      → L ⇛ M
+      → M ⇛* N
+        -------
+      → L ⇛* N

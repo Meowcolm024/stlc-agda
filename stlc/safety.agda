@@ -2,7 +2,6 @@ module stlc.safety where
 
 open import stlc.base
 open import stlc.prop
-open —→*-Reasoning
 open import stlc.subst
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -18,6 +17,10 @@ open import Data.Unit using (⊤; tt)
 private
   variable
     n m : ℕ
+
+open typing
+open smallstep
+open multistep
 
 Safe : Term 0 → Set
 Safe M = ∀ M' → M —→* M' → Value M' ⊎ ∃[ N ] (M' —→ N)
@@ -65,9 +68,9 @@ reducible? ((ƛ M) · N)  | no —↛M with reducible? N
 ... | no  —↛N with value? N
 ...   | yes VN  = yes ((M [ N ]) , β-abs VN)
 ...   | no  ¬VN = no λ { (_ , ξ-app₂ N→N') → —↛N (_ , N→N') ; (_ , β-abs VN) → ¬VN VN }
-reducible? (M₁ · M₂ · N) | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
-reducible? (true · N)    | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
-reducible? (false · N)   | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
+reducible? (M₁ · M₂ · N)     | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
+reducible? (true · N)        | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
+reducible? (false · N)       | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
 reducible? (if M₁ M₂ M₃ · N) | no —↛M = no λ { (_ , ξ-app₁ M→M') → —↛M (_ , M→M') }
 reducible? true       = no λ ()
 reducible? false      = no λ ()

@@ -2,12 +2,11 @@ module stlc.norm where
 
 open import stlc.base
 open import stlc.prop
-open —→*-Reasoning
 open import stlc.subst
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Fin using (Fin) renaming (zero to fz; suc to fs)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂) renaming ([_,_] to case-⊎)
@@ -17,6 +16,10 @@ open import Data.Empty using (⊥; ⊥-elim)
 private
   variable
     n m : ℕ
+
+open typing
+open smallstep
+open multistep
 
 data Halts (M : Term n) : Set where
   halts : ∀ {N}
