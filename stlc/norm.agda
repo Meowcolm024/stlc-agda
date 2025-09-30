@@ -17,8 +17,6 @@ private
   variable
     n m : ℕ
 
-open typing
-open smallstep
 open multistep
 
 data Halts (M : Term n) : Set where

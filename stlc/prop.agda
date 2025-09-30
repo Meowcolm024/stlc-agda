@@ -15,8 +15,6 @@ private
   variable
     n m : ℕ
 
-open stlc.base.typing
-
 ty-rename : ∀ {M A} {Γ : Context n}
   → Γ ⊢ M ⦂ A
   → ∀ {m ρ} {Δ : Context m} → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∋ ρ x ⦂ B)
@@ -44,8 +42,6 @@ ty-subst (⊢if ⊢L ⊢M ⊢N) Φ = ⊢if (ty-subst ⊢L Φ) (ty-subst ⊢M Φ)
 ----------------------
 -- Basic Properties --
 ----------------------
-
-open stlc.base.smallstep
 
 preservation : ∀ {M M' A}
   → ∅ ⊢ M ⦂ A
@@ -129,7 +125,7 @@ V-¬→ V-false ()
 -- Multistep --
 ---------------
 
-open stlc.base.multistep
+open multistep
 
 —→*-trans : ∀ {L M N : Term n}
   → L —→* M → M —→* N
@@ -177,8 +173,6 @@ appR-cong (N —→⟨ N→N₁ ⟩ N→*N') = step—→ (_ · N) (appR-cong N�
 ----------------
 
 module evaluation where
-  open stlc.base.multistep
-
   record Gas : Set where
     constructor gas
     field
@@ -212,6 +206,3 @@ module evaluation where
   ... | step M→N with eval (gas g) (preservation ⊢M M→N)
   ...    | steps N→*L fin                     = steps (M —→⟨ M→N ⟩ N→*L) fin
 
---------------
--- Parallel --
---------------

@@ -17,11 +17,11 @@ import stlc.norm
 -- semantic type soundness
 import stlc.safety
 
--- anti-rename
-import stlc.strengthen
-
 -- program equivalence
 import stlc.equiv
+
+-- anti-rename
+import stlc.strengthen
 
 -- substitution lemma (adapted from PLFA)
 import stlc.subst

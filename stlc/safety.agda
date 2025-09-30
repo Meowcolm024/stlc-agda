@@ -18,8 +18,6 @@ private
   variable
     n m : ℕ
 
-open typing
-open smallstep
 open multistep
 
 Safe : Term 0 → Set

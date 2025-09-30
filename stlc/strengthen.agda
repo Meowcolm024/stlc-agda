@@ -17,8 +17,6 @@ private
   variable
     n m : ℕ
 
-open stlc.base.typing
-
 ty-antirename : ∀ {M A} {Δ : Context m}
   → Δ ⊢ M ⦂ A
   → ∀ {N ρ} {Γ : Context n} → (∀ {x B} → Δ ∋ ρ x ⦂ B → Γ ∋ x ⦂ B)

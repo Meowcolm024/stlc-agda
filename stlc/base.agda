@@ -113,6 +113,8 @@ module typing where
         -----------------
       → Γ ⊢ if L M N ⦂ A
 
+open typing public
+
 -- weak reduction
 module smallstep where
   infix  4 _—→_
@@ -151,9 +153,9 @@ module smallstep where
         ------------------
       → if false M N —→ N
 
-module multistep where
-  open smallstep
+open smallstep public
 
+module multistep where
   infix  3 _—→*_
   infix  1 begin_
   infixr 2 _—→⟨_⟩_
@@ -174,56 +176,3 @@ module multistep where
 
   begin_ : ∀ {n} {M N : Term n} → M —→* N → M —→* N
   begin st = st
-
--- parallel reduction
-module parallel where
-  infix  4 _⇛_
-
-  data _⇛_ {n} : Term n → Term n → Set where
-    ⇛-refl : ∀ {M}
-        ------
-      → M ⇛ M
-
-    ⇛-app : ∀ {M M' N N'}
-      → M ⇛ M'
-      → N ⇛ N'
-        ----------------
-      → M · N ⇛ M' · N'
-
-    ⇛-if : ∀ {L L' M M' N N'}
-      → L ⇛ L'
-      → M ⇛ M'
-      → N ⇛ N'
-        -----------------------
-      → if L M N ⇛ if L' M' N'
-
-    ⇛-beta : ∀ {M M' N N'}
-      → M ⇛ M'
-      → N ⇛ N'
-        ----------------------
-      → (ƛ M) · N ⇛ M' [ N' ]
-
-    ⇛-if-true : ∀ {M M' N}
-      → M ⇛ M'
-        -----------------
-      → if true M N ⇛ M'
-
-    ⇛-if-false : ∀ {M N N'}
-      → N ⇛ N'
-        ------------------
-      → if false M N ⇛ N'
-
-  infix  2 _⇛*_
-  infixr 2 _⇛⟨_⟩_
-  infix  3 _∎
-
-  data _⇛*_ {n} : Term n → Term n → Set where
-    _∎ : ∀ (M : Term n)
-       --------
-      → M ⇛* M
-
-    _⇛⟨_⟩_ : ∀ (L : Term n) {M N}
-      → L ⇛ M
-      → M ⇛* N
-        -------
-      → L ⇛* N

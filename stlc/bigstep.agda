@@ -14,8 +14,6 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Unit using (⊤; tt)
 open import Function.Base using (_∘_)
 
-open typing
-open smallstep
 open multistep
 
 ClosEnv : (n : ℕ) → Set
