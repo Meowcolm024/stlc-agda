@@ -12,8 +12,8 @@ data Type : Set where
   bool : Type
   _⇒_  : Type → Type → Type
 
-infix  7 ƛ_
-infixl 8 _·_
+infix  5 ƛ_
+infixl 7 _·_
 infix  9 `_
 
 data Term (n : ℕ) : Set where

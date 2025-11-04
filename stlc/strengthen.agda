@@ -25,19 +25,19 @@ ty-antirename : ∀ {M A} {Δ : Context m}
   → Γ ⊢ N ⦂ A
 ty-antirename (⊢var x)         {N = ` y}        Φ refl = ⊢var (Φ x)
 ty-antirename (⊢abs ⊢M)        {N = ƛ N}        Φ refl
-  = ⊢abs (ty-antirename ⊢M {N = N} (λ { {x = fz} Z → Z ; {x = fs x} (S ∋x) → S (Φ ∋x) }) refl)
+  = ⊢abs (ty-antirename ⊢M (λ { {x = fz} Z → Z ; {x = fs x} (S ∋x) → S (Φ ∋x) }) refl)
 ty-antirename (⊢app ⊢M ⊢M₁)    {N = N · N₁}     Φ refl
-  = ⊢app (ty-antirename ⊢M {N = N} Φ refl) (ty-antirename ⊢M₁ {N = N₁} Φ refl)
+  = ⊢app (ty-antirename ⊢M Φ refl) (ty-antirename ⊢M₁ Φ refl)
 ty-antirename ⊢true            {N = true}       Φ refl = ⊢true
 ty-antirename ⊢false           {N = false}      Φ refl = ⊢false
 ty-antirename (⊢if ⊢M ⊢M₁ ⊢M₂) {N = if N N₁ N₂} Φ refl
-  = ⊢if (ty-antirename ⊢M {N = N} Φ refl) (ty-antirename ⊢M₁ {N = N₁} Φ refl) (ty-antirename ⊢M₂ {N = N₂} Φ refl)
+  = ⊢if (ty-antirename ⊢M Φ refl) (ty-antirename ⊢M₁ Φ refl) (ty-antirename ⊢M₂ Φ refl)
 
 ty-strengthen : ∀ {M A B} {Γ : Context n}
   → Γ ,- B ⊢ rename fs M ⦂ A
     -------------------------
   → Γ ⊢ M ⦂ A
-ty-strengthen ⊢M = ty-antirename ⊢M (λ { {x = fz} (S ∋x) → ∋x ; {x = fs x} (S ∋x) → ∋x }) refl
+ty-strengthen ⊢M = ty-antirename ⊢M (λ { (S ∋x) → ∋x }) refl
 
 infix  3 _∈_
 
@@ -85,12 +85,13 @@ k∉M-N↑ {M = if M M₁ M₂} ev
   = if N N₁ N₂ , refl
 
 N↑-k∉M : ∀ {k N} {M : Term (suc n)} → M ≡ rename (Fin.punchIn k) N → ¬ (k ∈ M)
-N↑-k∉M {N = ` x} {M = ` y} refl z = punchInᵢ≢i _ _ (Eq.sym z)
-N↑-k∉M {N = ƛ N} {M = ƛ M} refl = N↑-k∉M {N = N} {M = M} (Eq.cong (λ z → rename z N) (Eq.sym punchIn-ext))
-N↑-k∉M {N = N · N₁} {M = M · M₁} refl (inj₁ x) = N↑-k∉M {N = N} {M = M} refl x
-N↑-k∉M {N = N · N₁} {M = M · M₁} refl (inj₂ x) = N↑-k∉M {N = N₁} {M = M₁} refl x
-N↑-k∉M {N = true} {M = true} refl = λ ()
-N↑-k∉M {N = false} {M = false} refl = λ ()
-N↑-k∉M {N = if N N₁ N₂} {M = if M M₁ M₂} refl (inj₁ x) = N↑-k∉M {N = N} {M = M} refl x
+N↑-k∉M {N = ` x}        {M = ` y}        refl z               = punchInᵢ≢i _ _ (Eq.sym z)
+N↑-k∉M {N = ƛ N}        {M = ƛ M}        refl                 = N↑-k∉M {N = N} {M = M} (Eq.cong (λ z → rename z N) (Eq.sym punchIn-ext))
+N↑-k∉M {N = N · N₁}     {M = M · M₁}     refl (inj₁ x)        = N↑-k∉M {N = N} {M = M} refl x
+N↑-k∉M {N = N · N₁}     {M = M · M₁}     refl (inj₂ x)        = N↑-k∉M {N = N₁} {M = M₁} refl x
+N↑-k∉M {N = true}       {M = true}       refl ()
+N↑-k∉M {N = false}      {M = false}      refl ()
+N↑-k∉M {N = if N N₁ N₂} {M = if M M₁ M₂} refl (inj₁ x)        = N↑-k∉M {N = N} {M = M} refl x
 N↑-k∉M {N = if N N₁ N₂} {M = if M M₁ M₂} refl (inj₂ (inj₁ x)) = N↑-k∉M {N = N₁} {M = M₁} refl x
 N↑-k∉M {N = if N N₁ N₂} {M = if M M₁ M₂} refl (inj₂ (inj₂ x)) = N↑-k∉M {N = N₂} {M = M₂} refl x
+
