@@ -25,3 +25,6 @@ import stlc.strengthen
 
 -- substitution lemma (adapted from PLFA)
 import stlc.subst
+
+-- closure calculus
+import stlc.clos
