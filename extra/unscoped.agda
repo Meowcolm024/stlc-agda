@@ -58,10 +58,11 @@ data _⊢_⦂_ : Context → Term → Type → Set where
     → Γ ⊢ M · N ⦂ B
 
 ids : ℕ → Term
-ids = `_
+ids x = ` x
 
 ext : (ℕ → ℕ) → (ℕ → ℕ)
-ext ξ = 0 • (suc ∘ ξ)
+ext ρ zero    = zero
+ext ρ (suc x) = suc (ρ x)
 
 rename : (ℕ → ℕ) → Term → Term
 rename ρ (` x)   = ` ρ x
@@ -69,7 +70,8 @@ rename ρ (ƛ M)   = ƛ (rename (ext ρ) M)
 rename ρ (M · N) = (rename ρ M) · (rename ρ N)
 
 exts : (ℕ → Term) → (ℕ → Term)
-exts σ = ids 0 • (rename suc ∘ σ)
+exts σ zero    = ` zero
+exts σ (suc x) = rename suc (σ x)
 
 subst : (ℕ → Term) → Term → Term
 subst σ (` x)   = σ x
