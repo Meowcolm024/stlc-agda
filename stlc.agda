@@ -1,7 +1,7 @@
 module stlc where
 
 -- stlc with booleans
--- terms, types, typing and reudction
+-- types, terms, typing and reudction
 import stlc.base
 
 -- basic lemmas and proofs
@@ -17,7 +17,7 @@ import stlc.norm
 -- semantic type soundness
 import stlc.safety
 
--- program equivalence
+-- program equivalence (not finished)
 import stlc.equiv
 
 -- anti-rename

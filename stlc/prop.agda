@@ -138,6 +138,7 @@ open multistep
 —→*-pres ⊢M (_ ∎)              = ⊢M
 —→*-pres ⊢M (_ —→⟨ x ⟩ M—→*M') = —→*-pres (preservation ⊢M x) M—→*M'
 
+-- determ implies confluence
 confluence : ∀ {L M M' : Term n}
   → L —→* M → L —→* M'
     ------------------------------

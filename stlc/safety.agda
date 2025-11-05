@@ -57,7 +57,7 @@ value? true       = yes V-true
 value? false      = yes V-false
 value? (if L M N) = no λ ()
 
-reducible? : (M : Term 0) → Dec (∃[ M' ] M —→ M')
+reducible? : (M : Term 0) → Dec (∃[ M' ] (M —→ M'))
 reducible? (ƛ M) = no λ ()
 reducible? (M · N) with reducible? M
 ... | yes (M' , M→M') = yes (M' · N , ξ-app₁ M→M')
