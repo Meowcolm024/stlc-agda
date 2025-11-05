@@ -35,24 +35,16 @@ data Halts (M : Term n) : Set where
 _⊨_ : (Fin n → Term 0) → Context n → Set
 σ ⊨ Γ = ∀ {x B} → Γ ∋ x ⦂ B → 𝒩 B ⟦ σ x ⟧
 
+𝒩→⊢ : ∀ {M A} → 𝒩 A ⟦ M ⟧ → ∅ ⊢ M ⦂ A
+𝒩→⊢ {A = bool}  (⊢M , _) = ⊢M
+𝒩→⊢ {A = A ⇒ B} (⊢M , _) = ⊢M
+
+-- closing a term with a well typed substitution
 ⊢subst : ∀ {Γ : Context n} {σ M A}
   → Γ ⊢ M ⦂ A → σ ⊨ Γ
     ------------------
   → ∅ ⊢ subst σ M ⦂ A
-⊢subst (⊢var Γ∋x) σ⊨Γ with σ⊨Γ Γ∋x
-⊢subst {A = bool}  (⊢var Γ∋x) σ⊨Γ | ⊢σx , _ = ⊢σx
-⊢subst {A = A ⇒ B} (⊢var Γ∋x) σ⊨Γ | ⊢σx , _ = ⊢σx
-⊢subst (⊢abs ⊢M) σ⊨Γ = ⊢abs (ty-subst ⊢M (lemma σ⊨Γ))
-  where
-    lemma : ∀ {Γ A B σ x} → σ ⊨ Γ → Γ ,- A ∋ x ⦂ B → ∅ ,- A ⊢ exts σ x ⦂ B
-    lemma σ⊨Γ Z     = ⊢var Z
-    lemma σ⊨Γ (S x) with σ⊨Γ x
-    lemma {B = bool}  σ⊨Γ (S x) | ⊢σx , _ = ty-rename ⊢σx λ ()
-    lemma {B = B ⇒ C} σ⊨Γ (S x) | ⊢σx , _ = ty-rename ⊢σx λ ()
-⊢subst (⊢app ⊢M ⊢N)   σ⊨Γ = ⊢app (⊢subst ⊢M σ⊨Γ) (⊢subst ⊢N σ⊨Γ)
-⊢subst ⊢true          σ⊨Γ = ⊢true
-⊢subst ⊢false         σ⊨Γ = ⊢false
-⊢subst (⊢if ⊢L ⊢M ⊢N) σ⊨Γ = ⊢if (⊢subst ⊢L σ⊨Γ) (⊢subst ⊢M σ⊨Γ) (⊢subst ⊢N σ⊨Γ)
+⊢subst ⊢M σ⊨Γ = ty-subst ⊢M λ x → 𝒩→⊢ (σ⊨Γ x)
 
 ⊢—→Halts : ∀ {M M' : Term 0} → M —→ M' → Halts M → Halts M'
 ⊢—→Halts M—→M' (halts (_ ∎) VN)                  = ⊥-elim (V-¬→ VN M—→M')
@@ -61,10 +53,6 @@ _⊨_ : (Fin n → Term 0) → Context n → Set
 ⊢—→Halts' : ∀ {M M' : Term 0} → M —→ M' → Halts M' → Halts M
 ⊢—→Halts' M—→M' (halts (_ ∎) VN)             = halts (step—→ _ (_ ∎) M—→M') VN
 ⊢—→Halts' M—→M' (halts (_ —→⟨ x ⟩ M—→*N) VN) = halts (_ —→⟨ M—→M' ⟩ _ —→⟨ x ⟩ M—→*N) VN
-
-𝒩→⊢ : ∀ {M A} → 𝒩 A ⟦ M ⟧ → ∅ ⊢ M ⦂ A
-𝒩→⊢ {A = bool}  (⊢M , _) = ⊢M
-𝒩→⊢ {A = A ⇒ B} (⊢M , _) = ⊢M
 
 ⊢—→𝒩 : ∀ {M M' A} → M —→ M' → 𝒩 A ⟦ M ⟧ → 𝒩 A ⟦ M' ⟧
 ⊢—→𝒩 {A = bool}  M—→M' (⊢M , HM)     = preservation ⊢M M—→M' , ⊢—→Halts M—→M' HM

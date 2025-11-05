@@ -15,7 +15,7 @@ postulate
       -----------------------
     → f ≡ g
 
-infix  4 _⊢_⦂_
+infix  4 _⊢_⦂_  _—→_
 infixr 7 _⇒_
 infix  5 ƛ_
 infixl 7 _·_
@@ -32,7 +32,7 @@ Context = ℕ → Type
 
 -- cons A to subst (σ) or context (Γ)
 _•_ : ∀ {A : Set} → A → (ℕ → A) → (ℕ → A)
-(A • σ) 0       = A
+(A • σ) zero    = A
 (A • σ) (suc x) = σ x
 
 data Term : Set where
@@ -84,8 +84,8 @@ M [ N ] = subst (N • ids) M
 ren : (ℕ → ℕ) → (ℕ → Term)
 ren ρ = ids ∘ ρ
 
-ren-ext : ∀ {ξ} → ren (ext ξ) ≡ exts (ren ξ)
-ren-ext {ξ} = extensionality λ { zero → refl ; (suc x) → refl }
+ren-ext : ∀ {ρ} → ren (ext ρ) ≡ exts (ren ρ)
+ren-ext {ρ} = extensionality λ { zero → refl ; (suc x) → refl }
 
 rename-subst-ren : ∀ {ρ M} → rename ρ M ≡ subst (ren ρ) M
 rename-subst-ren {ρ} {` x}   = refl
@@ -95,15 +95,28 @@ rename-subst-ren {ρ} {M · N} rewrite rename-subst-ren {ρ} {M} | rename-subst-
 exts-subst-ren : ∀ {σ x} → exts σ (suc x) ≡ subst (ren suc) (σ x)
 exts-subst-ren {σ} {x} rewrite rename-subst-ren {suc} {σ x} = refl
 
+ty-ext : ∀ {Γ} {A : Type}
+  → ∀ {ρ Δ} → (∀ x → Γ x ≡ Δ (ρ x))
+    --------------------------------------
+  → (∀ x → (A • Γ) x ≡ (A • Δ) (ext ρ x))
+ty-ext Φ zero    = refl
+ty-ext Φ (suc x) = Φ x
+
 ty-ren : ∀ {Γ M A}
   → Γ ⊢ M ⦂ A
-  → ∀ {Δ ρ} → (∀ x → Γ x ≡ Δ (ρ x))
+  → ∀ {ρ Δ} → (∀ x → Γ x ≡ Δ (ρ x))
     --------------------------------
   → Δ ⊢ subst (ren ρ) M ⦂ A
 ty-ren (⊢var {x = x} refl) Φ = ⊢var (Eq.sym (Φ x))
-ty-ren (⊢abs ⊢M) {ρ = ρ} Φ rewrite Eq.sym (ren-ext {ρ})
-  = ⊢abs (ty-ren ⊢M (λ { zero → refl ; (suc x) → Φ x }))
-ty-ren (⊢app ⊢M ⊢N) Φ = ⊢app (ty-ren ⊢M Φ) (ty-ren ⊢N Φ)
+ty-ren (⊢abs ⊢M) {ρ}       Φ rewrite Eq.sym (ren-ext {ρ}) = ⊢abs (ty-ren ⊢M (ty-ext Φ))
+ty-ren (⊢app ⊢M ⊢N)        Φ = ⊢app (ty-ren ⊢M Φ) (ty-ren ⊢N Φ)
+
+ty-exts : ∀ {Γ A}
+  → ∀ {σ Δ} → (∀ x → Δ ⊢ σ x ⦂ Γ x)
+    ------------------------------------
+  → (∀ x → A • Δ ⊢ exts σ x ⦂ (A • Γ) x)
+ty-exts {σ = σ} Φ zero    = ⊢var refl
+ty-exts {σ = σ} Φ (suc x) rewrite exts-subst-ren {σ} {x} = ty-ren (Φ x) λ _ → refl
 
 ty-subst : ∀ {Γ M A}
   → Γ ⊢ M ⦂ A
@@ -111,18 +124,11 @@ ty-subst : ∀ {Γ M A}
     --------------------------------
   → Δ ⊢ subst σ M ⦂ A
 ty-subst (⊢var {x = x} refl) Φ = Φ x
-ty-subst {Γ}(⊢abs {A = A} ⊢M) {σ} {Δ} Φ
-  = ⊢abs (ty-subst ⊢M {exts σ} {A • Δ} lemma)
-  where
-    lemma : ∀ (x : ℕ) → A • Δ ⊢ exts σ x ⦂ (A • Γ) x
-    lemma zero    = ⊢var refl
-    lemma (suc x) rewrite exts-subst-ren {σ} {x} = ty-ren (Φ x) λ _ → refl
-ty-subst (⊢app ⊢M ⊢N) Φ = ⊢app (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
+ty-subst (⊢abs ⊢M) {σ}       Φ = ⊢abs (ty-subst ⊢M {exts σ} (ty-exts Φ))
+ty-subst (⊢app ⊢M ⊢N)        Φ = ⊢app (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
 
 data Value : Term → Set where
   V-abs : ∀ {M} → Value (ƛ M)
-
-infix  4 _—→_
 
 data _—→_ : Term → Term → Set where
   ξ-app₁ : ∀ {M M' N}
@@ -156,10 +162,10 @@ ty-prog : ∀ {Γ M A}
   → Closed Γ → Γ ⊢ M ⦂ A
     --------------------------
   → Value M ⊎ ∃[ M' ] M —→ M'
-ty-prog c (⊢var x)                               = ⊥-elim (c x)
-ty-prog c (⊢abs ⊢M)                              = inj₁ V-abs
-ty-prog c (⊢app {N = N} ⊢M ⊢N) with ty-prog c ⊢M
+ty-prog ∅ (⊢var x)                               = ⊥-elim (∅ x)
+ty-prog ∅ (⊢abs ⊢M)                              = inj₁ V-abs
+ty-prog ∅ (⊢app {N = N} ⊢M ⊢N) with ty-prog ∅ ⊢M
 ... | inj₂ (M' , M→M')                           = inj₂ (M' · N , ξ-app₁ M→M')
-... | inj₁ (V-abs {M = M}) with ty-prog c ⊢N
+... | inj₁ (V-abs {M = M}) with ty-prog ∅ ⊢N
 ...   | inj₁ (V-abs {M = N})                     = inj₂ ((M [ ƛ N ]) , β-abs V-abs)
 ...   | inj₂ (N' , N→N')                         = inj₂ ((ƛ M) · N' , ξ-app₂ N→N')

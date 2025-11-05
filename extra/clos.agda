@@ -3,7 +3,7 @@ module extra.clos where
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
 open import Relation.Nullary.Decidable using (True; toWitness)
-open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂) renaming ([_,_] to case-⊎)
 
 infixr 7 _⇒_
