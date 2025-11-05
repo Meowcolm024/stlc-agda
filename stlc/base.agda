@@ -39,15 +39,15 @@ infix  3 _∋_⦂_
 
 data _∋_⦂_ : ∀ {n} → Context n → Fin n → Type → Set where
   Z : ∀ {n A} {Γ : Context n}
-      ------------------
-    → (Γ ,- A) ∋ fz ⦂ A
+      ----------------
+    → Γ ,- A ∋ fz ⦂ A
 
   S : ∀ {n x A B} {Γ : Context n}
     → Γ ∋ x ⦂ A
-      --------------------
-    → (Γ ,- B) ∋ fs x ⦂ A
+      ------------------
+    → Γ ,- B ∋ fs x ⦂ A
 
-ext : ∀ {n m : ℕ} → (Fin n → Fin m) → Fin (suc n) → Fin (suc m)
+ext : ∀ {n m} → (Fin n → Fin m) → Fin (suc n) → Fin (suc m)
 ext ρ fz     = fz
 ext ρ (fs x) = fs (ρ x)
 
@@ -117,7 +117,7 @@ open typing public
 
 -- weak reduction
 module smallstep where
-  infix  4 _—→_
+  infix  2 _—→_
 
   data Value {n} : Term n → Set where
     V-abs   : ∀ {M} → Value (ƛ M)
@@ -156,7 +156,7 @@ module smallstep where
 open smallstep public
 
 module multistep where
-  infix  3 _—→*_
+  infix  2 _—→*_
   infix  1 begin_
   infixr 2 _—→⟨_⟩_
   infix  3 _∎

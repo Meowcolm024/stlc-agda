@@ -23,6 +23,7 @@ data Clos : Set where
   false : Clos
   ⟨_∣_⟩ : ∀ {n} → (M : Term n) → ClosEnv n → Clos
 
+-- with this definition, the closure environment may contain non value
 ClosEnv n = (x : Fin n) → Clos
 
 ∅' : ClosEnv 0
@@ -81,8 +82,8 @@ data _⊢_⇓_ : ∀ {n} → ClosEnv n → Term n → Clos → Set where
   with refl ← ⇓-determ M⇓V M⇓V'
   |    refl ← ⇓-determ M⇓V₁ M⇓V₁'
   = ⇓-determ M⇓V₂ M⇓V₂'
-⇓-determ ⇓-true ⇓-true = refl
-⇓-determ ⇓-false ⇓-false = refl
+⇓-determ ⇓-true           ⇓-true             = refl
+⇓-determ ⇓-false          ⇓-false            = refl
 ⇓-determ (⇓-if₁ M⇓V M⇓V₁) (⇓-if₁ M⇓V' M⇓V₁') = ⇓-determ M⇓V₁ M⇓V₁'
 ⇓-determ (⇓-if₁ M⇓V M⇓V₁) (⇓-if₂ M⇓V' M⇓V₁') with () ← ⇓-determ M⇓V M⇓V'
 ⇓-determ (⇓-if₂ M⇓V M⇓V₁) (⇓-if₁ M⇓V' M⇓V'') with () ← ⇓-determ M⇓V M⇓V'
@@ -107,7 +108,7 @@ Clos≈Value {⟨ ƛ M' ∣ γ ⟩} {ƛ M}   V≈M = V-abs
   → γ ≈ₑ σ → V ≈ N
     ----------------------------
   → (γ ,' V) ≈ₑ (ext-subst σ N)
-≈ₑ-ext γ≈ₑσ V≈N fz     = V≈N
+≈ₑ-ext             γ≈ₑσ V≈N fz     = V≈N
 ≈ₑ-ext {σ = σ} {N} γ≈ₑσ V≈N (fs x) rewrite subst-zero-exts {σ = σ} {M = N} {x = x} = γ≈ₑσ x
 
 ⇓→—→*×≈ : ∀ {n} {γ : ClosEnv n} {σ : Fin n → Term 0} {M V}
@@ -136,3 +137,11 @@ Clos≈Value {⟨ ƛ M' ∣ γ ⟩} {ƛ M}   V≈M = V-abs
 ⇓→—→*×≈ (⇓-if₂ M⇓f M⇓V) γ≈ₑσ  with ⇓→—→*×≈ M⇓f γ≈ₑσ | ⇓→—→*×≈ M⇓V γ≈ₑσ
 ... | false , L—→*false , tt | N' , M—→*N' , V≈N'
     = N' , —→*-trans (if-cong L—→*false) (step—→ (if false _ _) M—→*N' β-if₂) , V≈N'
+
+V⇓-≈ : ∀ {M V} → Value M → ∅' ⊢ M ⇓ V → V ≈ M
+V⇓-≈ (V-abs {M = M}) ⇓-lam = ids , (λ ()) , lemma
+  where
+    lemma : ƛ M ≡ ƛ subst (exts ids) M
+    lemma = Eq.cong ƛ_ (Eq.subst (λ f → M ≡ subst f M) (Eq.sym exts-ids) (Eq.sym sub-id))
+V⇓-≈ V-true ⇓-true = tt
+V⇓-≈ V-false ⇓-false = tt
