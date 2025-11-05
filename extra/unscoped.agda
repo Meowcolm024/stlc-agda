@@ -20,6 +20,7 @@ infixr 7 _⇒_
 infix  5 ƛ_
 infixl 7 _·_
 infix  9 `_
+infix  6 _•_
 
 data Type : Set where
   bool : Type
@@ -30,9 +31,9 @@ Context : Set
 Context = ℕ → Type
 
 -- cons A to subst (σ) or context (Γ)
-_▷_ : ∀ {A : Set} → (ℕ → A) → A → (ℕ → A)
-(σ ▷ A) 0       = A
-(σ ▷ A) (suc x) = σ x
+_•_ : ∀ {A : Set} → A → (ℕ → A) → (ℕ → A)
+(A • σ) 0       = A
+(A • σ) (suc x) = σ x
 
 data Term : Set where
   `_  : ℕ → Term
@@ -46,7 +47,7 @@ data _⊢_⦂_ : Context → Term → Type → Set where
     → Γ ⊢ ` x ⦂ A
 
   ⊢abs : ∀ {Γ A B M}
-    → Γ ▷ A ⊢ M ⦂ B
+    → A • Γ ⊢ M ⦂ B
       ----------------
     → Γ ⊢ ƛ M ⦂ A ⇒ B
 
@@ -60,15 +61,15 @@ ids : ℕ → Term
 ids = `_
 
 ext : (ℕ → ℕ) → (ℕ → ℕ)
-ext ξ = (suc ∘ ξ) ▷ 0
+ext ξ = 0 • (suc ∘ ξ)
 
 rename : (ℕ → ℕ) → Term → Term
-rename ξ (` x)   = ` ξ x
-rename ξ (ƛ M)   = ƛ (rename (ext ξ) M)
-rename ξ (M · N) = (rename ξ M) · (rename ξ N)
+rename ρ (` x)   = ` ρ x
+rename ρ (ƛ M)   = ƛ (rename (ext ρ) M)
+rename ρ (M · N) = (rename ρ M) · (rename ρ N)
 
 exts : (ℕ → Term) → (ℕ → Term)
-exts σ = ((rename suc) ∘ σ) ▷ ids 0
+exts σ = ids 0 • (rename suc ∘ σ)
 
 subst : (ℕ → Term) → Term → Term
 subst σ (` x)   = σ x
@@ -76,31 +77,31 @@ subst σ (ƛ M)   = ƛ (subst (exts σ) M)
 subst σ (M · N) = (subst σ M) · (subst σ N)
 
 _[_] : Term → Term → Term
-M [ N ] = subst (ids ▷ N) M
+M [ N ] = subst (N • ids) M
 
 ren : (ℕ → ℕ) → (ℕ → Term)
-ren ξ = ids ∘ ξ
+ren ρ = ids ∘ ρ
 
-exts-ren : ∀ {ξ} → exts (ren ξ) ≡ ren (ext ξ)
-exts-ren {ξ} = extensionality λ { zero → refl ; (suc x) → refl }
+ren-ext : ∀ {ξ} → ren (ext ξ) ≡ exts (ren ξ)
+ren-ext {ξ} = extensionality λ { zero → refl ; (suc x) → refl }
 
-rename-subst : ∀ {ξ M} → rename ξ M ≡ subst (ren ξ) M
-rename-subst {ξ} {` x}   = refl
-rename-subst {ξ} {ƛ M}   rewrite rename-subst {ext ξ} {M} | exts-ren {ξ} = refl
-rename-subst {ξ} {M · N} rewrite rename-subst {ξ} {M} | rename-subst {ξ} {N} = refl
+rename-subst-ren : ∀ {ρ M} → rename ρ M ≡ subst (ren ρ) M
+rename-subst-ren {ρ} {` x}   = refl
+rename-subst-ren {ρ} {ƛ M}   rewrite rename-subst-ren {ext ρ} {M} | ren-ext {ρ} = refl
+rename-subst-ren {ρ} {M · N} rewrite rename-subst-ren {ρ} {M} | rename-subst-ren {ρ} {N} = refl
 
-exts-suc-ren : ∀ {σ n} → exts σ (suc n) ≡ subst (ren suc) (σ n)
-exts-suc-ren {σ} {n} rewrite rename-subst {suc} {σ n} = refl
+exts-subst-ren : ∀ {σ x} → exts σ (suc x) ≡ subst (ren suc) (σ x)
+exts-subst-ren {σ} {x} rewrite rename-subst-ren {suc} {σ x} = refl
 
 ty-ren : ∀ {Γ M A}
   → Γ ⊢ M ⦂ A
-  → ∀ {Δ ξ} → Γ ≡ Δ ∘ ξ
-    ------------------------
-  → Δ ⊢ subst (ren ξ) M ⦂ A
-ty-ren (⊢var refl) refl = ⊢var refl
-ty-ren (⊢abs ⊢M) {ξ = ξ} refl rewrite exts-ren {ξ}
-  = ⊢abs (ty-ren ⊢M (extensionality λ { zero → refl ; (suc x) → refl }))
-ty-ren (⊢app ⊢M ⊢N) refl = ⊢app (ty-ren ⊢M refl) (ty-ren ⊢N refl)
+  → ∀ {Δ ρ} → (∀ x → Γ x ≡ Δ (ρ x))
+    --------------------------------
+  → Δ ⊢ subst (ren ρ) M ⦂ A
+ty-ren (⊢var {x = x} refl) Φ = ⊢var (Eq.sym (Φ x))
+ty-ren (⊢abs ⊢M) {ρ = ρ} Φ rewrite Eq.sym (ren-ext {ρ})
+  = ⊢abs (ty-ren ⊢M (λ { zero → refl ; (suc x) → Φ x }))
+ty-ren (⊢app ⊢M ⊢N) Φ = ⊢app (ty-ren ⊢M Φ) (ty-ren ⊢N Φ)
 
 ty-subst : ∀ {Γ M A}
   → Γ ⊢ M ⦂ A
@@ -109,11 +110,11 @@ ty-subst : ∀ {Γ M A}
   → Δ ⊢ subst σ M ⦂ A
 ty-subst (⊢var {x = x} refl) Φ = Φ x
 ty-subst {Γ}(⊢abs {A = A} ⊢M) {σ} {Δ} Φ
-  = ⊢abs (ty-subst ⊢M {exts σ} {Δ ▷ A} lemma)
+  = ⊢abs (ty-subst ⊢M {exts σ} {A • Δ} lemma)
   where
-    lemma : ∀ (x : ℕ) → Δ ▷ A ⊢ exts σ x ⦂ (Γ ▷ A) x
+    lemma : ∀ (x : ℕ) → A • Δ ⊢ exts σ x ⦂ (A • Γ) x
     lemma zero    = ⊢var refl
-    lemma (suc x) rewrite exts-suc-ren {σ} {x} = ty-ren (Φ x) refl
+    lemma (suc x) rewrite exts-subst-ren {σ} {x} = ty-ren (Φ x) λ _ → refl
 ty-subst (⊢app ⊢M ⊢N) Φ = ⊢app (ty-subst ⊢M Φ) (ty-subst ⊢N Φ)
 
 data Value : Term → Set where
