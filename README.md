@@ -1,8 +1,9 @@
 # stlc-agda
 
-Formalization of simply typed lambda calculus with well scoped deburijn index in Agda.
+Formalization of simply typed lambda calculus with *well scoped deburijn index* in Agda. 
+Many of the formalizations are derived from *PLFA*.
 
-You can also click [here](https://meowcolm024.github.io/stlc-agda/docs/stlc.html) to view the highlighted html version.
+You can also checkout [the highlighted html version](https://meowcolm024.github.io/stlc-agda/docs/stlc.html).
 
 ## References
 
@@ -10,4 +11,7 @@ You can also click [here](https://meowcolm024.github.io/stlc-agda/docs/stlc.html
 - [Programming Language Foundations](https://softwarefoundations.cis.upenn.edu/plf-current/index.html)
 - [An Introduction to Logical Relations](https://cs.au.dk/~birke/papers/AnIntroductionToLogicalRelations.pdf)
 - [Type safety in STLC using logical relation](https://github.com/tmoux/logical-relations)
-- [Autosubst 1](https://www.ps.uni-saarland.de/autosubst/)
+- [Autosubst: Automation for de Bruijn syntax and substitution in Coq](https://www.ps.uni-saarland.de/autosubst/)
+- [Explicit substitutions](https://pauillac.inria.fr/~levy/pubs/90popljfp.pdf)
+- [A concrete framework for environment machines](https://www.brics.dk/RS/05/15/BRICS-RS-05-15.pdf)
+- [POPLMark reloaded: Mechanizing proofs by logical relations](https://poplmark-reloaded.github.io)
