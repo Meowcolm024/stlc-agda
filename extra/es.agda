@@ -87,20 +87,20 @@ data Subst where
     → ----------------
       Subst Γ Σ
 
-data IS : Subst Γ Δ → Set where
-  IS-↑ : IS {Γ} {Γ ,- A} ↑
-  IS-⨟ : IS σ → IS (↑ ⨟ σ)
+data Shifts : Subst Γ Δ → Set where
+  S-↑ : Shifts {Γ} {Γ ,- A} ↑
+  S-⨟ : Shifts σ → Shifts (↑ ⨟ σ)
 
-data NS : Subst Γ Δ → Set where
-  NS-I  : IS σ → NS σ
-  NS-id : NS {Γ} id
-  NS-•  : NS (M • σ)
+data NormSubst : Subst Γ Δ → Set where
+  NS-I  : Shifts σ → NormSubst σ
+  NS-id : NormSubst {Γ} id
+  NS-•  : NormSubst (M • σ)
 
 data Normal : Γ ⊢ A → Set
 
 data Neutral : Γ ⊢ A → Set where
   I-⋆ : Neutral {Γ ,- A} ⋆
-  I-↑ : IS σ → Neutral (⋆ [ σ ])
+  I-↑ : Shifts σ → Neutral (⋆ [ σ ])
   I-· : Neutral M → Normal N → Neutral (M · N)
 
 data Normal where
@@ -115,24 +115,24 @@ data _~→_ : Subst Γ Δ → Subst Γ Δ → Set
 
 data _—→_ : Γ ⊢ A → Γ ⊢ A → Set where
   ξ-ƛ :
-      M —→ N
-    → -----------
+      (M—→N : M —→ N)
+    → ----------------
       ƛ M —→ ƛ N
 
   β-ƛ :
-      Normal M
+      (VM : Normal M)
     → --------------------------
       (ƛ M) · N —→ M [ N • id ]
 
   ξ-· :
-      L —→ M
-    → ---------------
+      (L—→M : L —→ M)
+    → ----------------
       L · N —→ M · N
 
   ξ-I :
-      Neutral L
-    → M —→ N
-    → ---------------
+      (IL : Neutral L)
+      (M—→N : M —→ N)
+    → -----------------
       L · M —→ L · N
 
   σ-Z :
@@ -174,8 +174,8 @@ data _~→_ where
       ↑ ⨟ (M • σ) ~→ σ
 
   ↑⨟ :
-      σ ~→ τ
-    → ---------------
+      (σ~→τ : σ ~→ τ)
+    → ----------------
       ↑ ⨟ σ ~→ ↑ ⨟ τ
 
   •⨟ :
@@ -186,34 +186,34 @@ data _~→_ where
       ---------------------------
       (σ ⨟ τ) ⨟ υ ~→ σ ⨟ (τ ⨟ υ)
 
-IS-¬~→ : IS σ → ¬ (σ ~→ τ)
-IS-¬~→ (IS-⨟ x) (↑⨟ σ~→τ) = IS-¬~→ x σ~→τ
+Shifts-¬~→ : Shifts σ → ¬ (σ ~→ τ)
+Shifts-¬~→ (S-⨟ x) (↑⨟ σ~→τ) = Shifts-¬~→ x σ~→τ
 
-NS-¬~→ : NS σ → ¬ (σ ~→ τ)
-NS-¬~→ (NS-I x) σ~→τ = IS-¬~→ x σ~→τ
+NormSubst-¬~→ : NormSubst σ → ¬ (σ ~→ τ)
+NormSubst-¬~→ (NS-I x) σ~→τ = Shifts-¬~→ x σ~→τ
 
-subst-prog : (σ : Subst Γ Δ) → NS σ ⊎ ∃[ τ ] (σ ~→ τ)
+subst-prog : (σ : Subst Γ Δ) → NormSubst σ ⊎ ∃[ τ ] (σ ~→ τ)
 subst-prog id                          = inj₁ NS-id
-subst-prog ↑                           = inj₁ (NS-I IS-↑)
+subst-prog ↑                           = inj₁ (NS-I S-↑)
 subst-prog (M • σ)                     = inj₁ NS-•
 subst-prog (id ⨟ σ')                   = inj₂ (σ' , id⨟)
 subst-prog (↑ ⨟ σ') with subst-prog σ'
-... | inj₁ (NS-I x)                    = inj₁ (NS-I (IS-⨟ x))
+... | inj₁ (NS-I x)                    = inj₁ (NS-I (S-⨟ x))
 ... | inj₁ NS-id                       = inj₂ (↑ , ↑⨟id)
 ... | inj₁ (NS-• {σ = σ})              = inj₂ (σ , ↑⨟•)
 ... | inj₂ (τ' , σ'~→τ')               = inj₂ (↑ ⨟ τ' , ↑⨟ σ'~→τ')
 subst-prog (M • σ ⨟ σ')                = inj₂ (M [ σ' ] • (σ ⨟ σ') , •⨟)
 subst-prog ((σ ⨟ σ₁) ⨟ σ')             = inj₂ (σ ⨟ σ₁ ⨟ σ' , ⨟⨟)
 
-Normal-¬—→ : Normal M → ¬ (M —→ N)
-
+Normal-¬—→  : Normal M → ¬ (M —→ N)
 Neutral-¬—→ : Neutral M → ¬ (M —→ N)
-Neutral-¬—→ (I-↑ x)   (σ-ξ σ~→τ)   = IS-¬~→ x σ~→τ
-Neutral-¬—→ (I-· x y) (ξ-· M—→N)   = Neutral-¬—→ x M—→N
-Neutral-¬—→ (I-· x y) (ξ-I _ M—→N) = Normal-¬—→ y M—→N
 
-Normal-¬—→ (V-I y) M—→N       = Neutral-¬—→ y M—→N
-Normal-¬—→ (V-ƛ x) (ξ-ƛ M—→N) = Normal-¬—→ x M—→N
+Neutral-¬—→ (I-↑ x)     (σ-ξ σ~→τ)   = Shifts-¬~→ x σ~→τ
+Neutral-¬—→ (I-· IM VM) (ξ-· M—→N)   = Neutral-¬—→ IM M—→N
+Neutral-¬—→ (I-· IM VM) (ξ-I _ M—→N) = Normal-¬—→ VM M—→N
+
+Normal-¬—→ (V-I IM) M—→N       = Neutral-¬—→ IM M—→N
+Normal-¬—→ (V-ƛ VM) (ξ-ƛ M—→N) = Normal-¬—→ VM M—→N
 
 progress : (M : Γ ⊢ A) → Normal M ⊎ ∃[ N ] (M —→ N)
 progress ⋆                           = inj₁ (V-I I-⋆)
@@ -244,19 +244,19 @@ progress (M [ σ ] [ σ' ])            = inj₂ (M [ σ ⨟ σ' ] , σ-⨟)
 ~→-determ ⨟⨟        ⨟⨟        = refl
 
 —→-determ : L —→ M → L —→ N → M ≡ N
-—→-determ (ξ-ƛ L—→M)   (ξ-ƛ L—→N)    rewrite —→-determ L—→M L—→N = refl
-—→-determ (β-ƛ x)      (β-ƛ x')      = refl
-—→-determ (β-ƛ x)      (ξ-· L—→N)    = ⊥-elim (Normal-¬—→ (V-ƛ x) L—→N)
-—→-determ (ξ-· L—→M)   (β-ƛ x)       = ⊥-elim (Normal-¬—→ (V-ƛ x) L—→M)
-—→-determ (ξ-· L—→M)   (ξ-· L—→N)    rewrite —→-determ L—→M L—→N = refl
-—→-determ (ξ-· L—→M)   (ξ-I x L—→N)  = ⊥-elim (Neutral-¬—→ x L—→M)
-—→-determ (ξ-I x L—→M) (ξ-· L—→N)    = ⊥-elim (Neutral-¬—→ x L—→N)
-—→-determ (ξ-I x L—→M) (ξ-I x' L—→N) rewrite —→-determ L—→M L—→N = refl
-—→-determ σ-Z          σ-Z           = refl
-—→-determ σ-M          σ-M           = refl
-—→-determ (σ-ξ σ~→τ)   (σ-ξ σ~→υ)    rewrite ~→-determ σ~→τ σ~→υ = refl
-—→-determ σ-·          σ-·           = refl
-—→-determ σ-ƛ          σ-ƛ           = refl
-—→-determ σ-⨟          σ-⨟           = refl
+—→-determ (ξ-ƛ L—→M)    (ξ-ƛ L—→N)    rewrite —→-determ L—→M L—→N = refl
+—→-determ (β-ƛ VM)      (β-ƛ _)       = refl
+—→-determ (β-ƛ VM)      (ξ-· L—→N)    = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→N)
+—→-determ (ξ-· L—→M)    (β-ƛ VM)      = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→M)
+—→-determ (ξ-· L—→M)    (ξ-· L—→N)    rewrite —→-determ L—→M L—→N = refl
+—→-determ (ξ-· L—→M)    (ξ-I VM L—→N) = ⊥-elim (Neutral-¬—→ VM L—→M)
+—→-determ (ξ-I VM L—→M) (ξ-· L—→N)    = ⊥-elim (Neutral-¬—→ VM L—→N)
+—→-determ (ξ-I VM L—→M) (ξ-I _ L—→N)  rewrite —→-determ L—→M L—→N = refl
+—→-determ σ-Z           σ-Z           = refl
+—→-determ σ-M           σ-M           = refl
+—→-determ (σ-ξ σ~→τ)    (σ-ξ σ~→υ)    rewrite ~→-determ σ~→τ σ~→υ = refl
+—→-determ σ-·           σ-·           = refl
+—→-determ σ-ƛ           σ-ƛ           = refl
+—→-determ σ-⨟           σ-⨟           = refl
 
--- note: determism implies conflence
+-- note: determism implies confluence
