@@ -135,16 +135,16 @@ data _—→_ : Γ ⊢ A → Γ ⊢ A → Set where
     → -----------------
       L · M —→ L · N
 
-  σ-Z :
+  σ-⋆ :
       -------------------------
       ⋆ [ (id {Γ ,- A}) ] —→ ⋆
 
-  σ-M :
+  σ-• :
       -----------------
       ⋆ [ M • σ ] —→ M
 
   σ-ξ :
-      σ ~→ τ
+      (σ~→τ : σ ~→ τ)
     → -------------------
       ⋆ [ σ ] —→ ⋆ [ τ ]
 
@@ -228,8 +228,8 @@ progress (M · M') with progress M
 ...   | inj₂ (N' , M'—→N')           = inj₂ (M · N' , ξ-I IM M'—→N')
 progress (⋆ [ σ ]) with subst-prog σ
 ... | inj₁ (NS-I x)                  = inj₁ (V-I (I-↑ x))
-... | inj₁ NS-id                     = inj₂ (⋆ , σ-Z)
-... | inj₁ (NS-• {M = M})            = inj₂ (M , σ-M)
+... | inj₁ NS-id                     = inj₂ (⋆ , σ-⋆)
+... | inj₁ (NS-• {M = M})            = inj₂ (M , σ-•)
 ... | inj₂ (τ , σ~→τ)                = inj₂ (⋆ [ τ ] , σ-ξ σ~→τ)
 progress ((ƛ M) [ σ ])               = inj₂ (ƛ M [ ⋆ • (σ ⨟ ↑) ] , σ-ƛ)
 progress ((M · M') [ σ ])            = inj₂ (M [ σ ] · M' [ σ ] , σ-·)
@@ -249,11 +249,11 @@ progress (M [ σ ] [ σ' ])            = inj₂ (M [ σ ⨟ σ' ] , σ-⨟)
 —→-determ (β-ƛ VM)      (ξ-· L—→N)    = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→N)
 —→-determ (ξ-· L—→M)    (β-ƛ VM)      = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→M)
 —→-determ (ξ-· L—→M)    (ξ-· L—→N)    rewrite —→-determ L—→M L—→N = refl
-—→-determ (ξ-· L—→M)    (ξ-I VM L—→N) = ⊥-elim (Neutral-¬—→ VM L—→M)
-—→-determ (ξ-I VM L—→M) (ξ-· L—→N)    = ⊥-elim (Neutral-¬—→ VM L—→N)
-—→-determ (ξ-I VM L—→M) (ξ-I _ L—→N)  rewrite —→-determ L—→M L—→N = refl
-—→-determ σ-Z           σ-Z           = refl
-—→-determ σ-M           σ-M           = refl
+—→-determ (ξ-· L—→M)    (ξ-I IL L—→N) = ⊥-elim (Neutral-¬—→ IL L—→M)
+—→-determ (ξ-I IL L—→M) (ξ-· L—→N)    = ⊥-elim (Neutral-¬—→ IL L—→N)
+—→-determ (ξ-I IL L—→M) (ξ-I _ L—→N)  rewrite —→-determ L—→M L—→N = refl
+—→-determ σ-⋆           σ-⋆           = refl
+—→-determ σ-•           σ-•           = refl
 —→-determ (σ-ξ σ~→τ)    (σ-ξ σ~→υ)    rewrite ~→-determ σ~→τ σ~→υ = refl
 —→-determ σ-·           σ-·           = refl
 —→-determ σ-ƛ           σ-ƛ           = refl
