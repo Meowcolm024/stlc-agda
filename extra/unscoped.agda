@@ -92,9 +92,6 @@ rename-subst-ren {ρ} {` x}   = refl
 rename-subst-ren {ρ} {ƛ M}   rewrite rename-subst-ren {ext ρ} {M} | ren-ext {ρ} = refl
 rename-subst-ren {ρ} {M · N} rewrite rename-subst-ren {ρ} {M} | rename-subst-ren {ρ} {N} = refl
 
-exts-subst-ren : ∀ {σ x} → exts σ (suc x) ≡ subst (ren suc) (σ x)
-exts-subst-ren {σ} {x} rewrite rename-subst-ren {suc} {σ x} = refl
-
 ty-ext : ∀ {Γ} {A : Type}
   → ∀ {ρ Δ} → (∀ x → Γ x ≡ Δ (ρ x))
     --------------------------------------
@@ -116,7 +113,7 @@ ty-exts : ∀ {Γ A}
     ------------------------------------
   → (∀ x → A • Δ ⊢ exts σ x ⦂ (A • Γ) x)
 ty-exts {σ = σ} Φ zero    = ⊢var refl
-ty-exts {σ = σ} Φ (suc x) rewrite exts-subst-ren {σ} {x} = ty-ren (Φ x) λ _ → refl
+ty-exts {σ = σ} Φ (suc x) rewrite rename-subst-ren {suc} {σ x} = ty-ren (Φ x) λ _ → refl
 
 ty-subst : ∀ {Γ M A}
   → Γ ⊢ M ⦂ A
