@@ -250,7 +250,7 @@ rename⋆-∃ : ∀ {n m r M A ρ} {Γ : Context n m} {Δ : Context r m}
   → (∀ {x C} → Δ ∋ x ⦂ rename⋆ ρ C → Γ ∋ x ⦂ C)
     -------------------------
   → ∃[ B ] (A ≡ rename⋆ ρ B)
-rename⋆-∃ = ?
+rename⋆-∃ = {!!}
 
 ty-antirename-ty : ∀ {r m} {Δ : Context r m} {N B}
   → Δ ⊢ N ⦂ B

@@ -9,8 +9,8 @@ open import Data.Sum using (_⊎_; inj₁; inj₂) renaming ([_,_] to case-⊎)
 infixr 7 _⇒_
 
 data Type : Set where
-  bool : Type
-  _⇒_  : Type → Type → Type
+  `ℕ  : Type
+  _⇒_ : Type → Type → Type
 
 infixl 5 _,-_
 
