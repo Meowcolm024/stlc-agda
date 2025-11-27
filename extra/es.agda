@@ -81,210 +81,88 @@ data Subst where
     → ----------------
       Subst Γ Σ
 
+-- a sequence of shifts
 data Shifts : Subst Γ Δ → Set where
   S-↑ : Shifts {Γ} {Γ ,- A} ↑
   S-⨟ : Shifts σ → Shifts (↑ ⨟ σ)
 
-data NormSubst : Subst Γ Δ → Set where
-  NS-S  : Shifts σ → NormSubst σ
-  NS-id : NormSubst {Γ} id
-  NS-•  : NormSubst (M • σ)
+-- the basic rewriting system
+module basic where
+  data σNf : Γ ⊢ A → Set where
+    σNf-⋆ : σNf {Γ ,- A} ⋆
+    σNf-↑ : Shifts σ → σNf (⋆ [ σ ])
+    σNf-· : σNf M → σNf N → σNf (M · N)
+    σNf-ƛ : σNf M → σNf (ƛ M)
 
-data Normal : Γ ⊢ A → Set
+  data σNf-Subst : Subst Γ Δ → Set where
+    σNf-si : σNf-Subst {Γ} id
+    σNf-su : σNf-Subst {Γ} {Γ ,- A} ↑
+    σNf-sc : σNf-Subst σ → σNf-Subst (M • σ)
 
-data Neutral : Γ ⊢ A → Set where
-  I-⋆ : Neutral {Γ ,- A} ⋆
-  I-↑ : Shifts σ → Neutral (⋆ [ σ ])
-  I-· : Neutral M → Normal N → Neutral (M · N)
+  infix  2 _—→_ _~→_
 
-data Normal where
-  V-I : Neutral M → Normal M
-  V-ƛ : Normal M → Normal (ƛ M)
+  data _~→_ : Subst Γ Δ → Subst Γ Δ → Set where
+    id⨟ :
+        ------------
+        id ⨟ σ ~→ σ
 
--- (full) normal order reduction
+    ↑⨟id :
+         -----------------------
+         ↑ ⨟ (id {Γ ,- A}) ~→ ↑
 
-infix  2 _—→_ _~→_
+    ↑⨟• :
+        -----------------
+        ↑ ⨟ (M • σ) ~→ σ
 
-data _~→_ : Subst Γ Δ → Subst Γ Δ → Set where
-  id⨟ :
-      ------------
-      id ⨟ σ ~→ σ
+    •⨟ :
+       ---------------------------------
+       (M • σ) ⨟ τ ~→ M [ τ ] • (σ ⨟ τ)
 
-  ↑⨟id :
-      -----------------------
-      ↑ ⨟ (id {Γ ,- A}) ~→ ↑
+    ⨟⨟ :
+       ---------------------------
+       (σ ⨟ τ) ⨟ υ ~→ σ ⨟ (τ ⨟ υ)
 
-  ↑⨟• :
-      -----------------
-      ↑ ⨟ (M • σ) ~→ σ
+  data _—→_ : Γ ⊢ A → Γ ⊢ A → Set where
+    β-ƛ :
+        (VM : σNf M)
+        → --------------------------
+        (ƛ M) · N —→ M [ N • id ]
 
-  ↑⨟ :
-      (σ~→τ : σ ~→ τ)
-    → ----------------
-      ↑ ⨟ σ ~→ ↑ ⨟ τ
+    σ-⋆ :
+        -------------------------
+        ⋆ [ (id {Γ ,- A}) ] —→ ⋆
 
-  •⨟ :
-      ---------------------------------
-      (M • σ) ⨟ τ ~→ M [ τ ] • (σ ⨟ τ)
+    σ-• :
+        -----------------
+        ⋆ [ M • σ ] —→ M
 
-  ⨟⨟ :
-      ---------------------------
-      (σ ⨟ τ) ⨟ υ ~→ σ ⨟ (τ ⨟ υ)
+    σ-· :
+        -----------------------------------
+        (M · N) [ σ ] —→ M [ σ ] · N [ σ ]
 
-data _—→_ : Γ ⊢ A → Γ ⊢ A → Set where
-  ξ-ƛ :
-      (M—→N : M —→ N)
-    → ----------------
-      ƛ M —→ ƛ N
+    σ-ƛ :
+        -----------------------------------
+        (ƛ M) [ σ ] —→ ƛ M [ ⋆ • (σ ⨟ ↑) ]
 
-  β-ƛ :
-      (VM : Normal M)
-    → --------------------------
-      (ƛ M) · N —→ M [ N • id ]
+    σ-⨟ :
+        -----------------------------
+        M [ σ ] [ τ ] —→ M [ σ ⨟ τ ]
 
-  ξ-· :
-      (L—→M : L —→ M)
-    → ----------------
-      L · N —→ M · N
+  open import Relation.Binary.Construct.Closure.ReflexiveTransitive
+    using (Star; ε; _◅_; _◅◅_)
 
-  ξ-I :
-      (IL : Neutral L)
-      (M—→N : M —→ N)
-    → -----------------
-      L · M —→ L · N
+  -- multistep
+  _—↠_ : (M N : Γ ⊢ A) → Set
+  M —↠ N = Star _—→_ M N
 
-  σ-⋆ :
-      -------------------------
-      ⋆ [ (id {Γ ,- A}) ] —→ ⋆
-
-  σ-• :
-      -----------------
-      ⋆ [ M • σ ] —→ M
-
-  σ-ξ :
-      (σ~→τ : σ ~→ τ)
-    → -------------------
-      ⋆ [ σ ] —→ ⋆ [ τ ]
-
-  σ-· :
-      -----------------------------------
-      (M · N) [ σ ] —→ M [ σ ] · N [ σ ]
-
-  σ-ƛ :
-      -----------------------------------
-      (ƛ M) [ σ ] —→ ƛ M [ ⋆ • (σ ⨟ ↑) ]
-
-  σ-⨟ :
-      -----------------------------
-      M [ σ ] [ τ ] —→ M [ σ ⨟ τ ]
-
-Shifts-¬~→ : Shifts σ → ¬ (σ ~→ τ)
-Shifts-¬~→ (S-⨟ x) (↑⨟ σ~→τ) = Shifts-¬~→ x σ~→τ
-
-NormSubst-¬~→ : NormSubst σ → ¬ (σ ~→ τ)
-NormSubst-¬~→ (NS-S x) σ~→τ = Shifts-¬~→ x σ~→τ
-
-subst-prog : (σ : Subst Γ Δ) → NormSubst σ ⊎ ∃[ τ ] (σ ~→ τ)
-subst-prog id                          = inj₁ NS-id
-subst-prog ↑                           = inj₁ (NS-S S-↑)
-subst-prog (M • σ)                     = inj₁ NS-•
-subst-prog (id ⨟ σ')                   = inj₂ (σ' , id⨟)
-subst-prog (↑ ⨟ σ') with subst-prog σ'
-... | inj₁ (NS-S x)                    = inj₁ (NS-S (S-⨟ x))
-... | inj₁ NS-id                       = inj₂ (↑ , ↑⨟id)
-... | inj₁ (NS-• {σ = σ})              = inj₂ (σ , ↑⨟•)
-... | inj₂ (τ' , σ'~→τ')               = inj₂ (↑ ⨟ τ' , ↑⨟ σ'~→τ')
-subst-prog (M • σ ⨟ σ')                = inj₂ (M [ σ' ] • (σ ⨟ σ') , •⨟)
-subst-prog ((σ ⨟ σ₁) ⨟ σ')             = inj₂ (σ ⨟ σ₁ ⨟ σ' , ⨟⨟)
-
-Normal-¬—→  : Normal M → ¬ (M —→ N)
-Neutral-¬—→ : Neutral M → ¬ (M —→ N)
-
-Neutral-¬—→ (I-↑ x)     (σ-ξ σ~→τ)   = Shifts-¬~→ x σ~→τ
-Neutral-¬—→ (I-· IM VM) (ξ-· M—→N)   = Neutral-¬—→ IM M—→N
-Neutral-¬—→ (I-· IM VM) (ξ-I _ M—→N) = Normal-¬—→ VM M—→N
-
-Normal-¬—→ (V-I IM) M—→N       = Neutral-¬—→ IM M—→N
-Normal-¬—→ (V-ƛ VM) (ξ-ƛ M—→N) = Normal-¬—→ VM M—→N
-
-progress : (M : Γ ⊢ A) → Normal M ⊎ ∃[ N ] (M —→ N)
-progress ⋆                           = inj₁ (V-I I-⋆)
-progress (ƛ M) with progress M
-... | inj₁ VM                        = inj₁ (V-ƛ VM)
-... | inj₂ (N , M—→N)                = inj₂ (ƛ N , ξ-ƛ M—→N)
-progress (M · M') with progress M
-... | inj₂ (N , M—→N)                = inj₂ (N · M' , ξ-· M—→N)
-... | inj₁ (V-ƛ {M = M₁} VM)         = inj₂ (M₁ [ M' • id ] , β-ƛ VM)
-... | inj₁ (V-I IM) with progress M'
-...   | inj₁ VM'                     = inj₁ (V-I (I-· IM VM'))
-...   | inj₂ (N' , M'—→N')           = inj₂ (M · N' , ξ-I IM M'—→N')
-progress (⋆ [ σ ]) with subst-prog σ
-... | inj₁ (NS-S x)                  = inj₁ (V-I (I-↑ x))
-... | inj₁ NS-id                     = inj₂ (⋆ , σ-⋆)
-... | inj₁ (NS-• {M = M})            = inj₂ (M , σ-•)
-... | inj₂ (τ , σ~→τ)                = inj₂ (⋆ [ τ ] , σ-ξ σ~→τ)
-progress ((ƛ M) [ σ ])               = inj₂ (ƛ M [ ⋆ • (σ ⨟ ↑) ] , σ-ƛ)
-progress ((M · M') [ σ ])            = inj₂ (M [ σ ] · M' [ σ ] , σ-·)
-progress (M [ σ ] [ σ' ])            = inj₂ (M [ σ ⨟ σ' ] , σ-⨟)
-
-~→-determ : σ ~→ τ → σ ~→ υ → τ ≡ υ
-~→-determ id⨟       id⨟       = refl
-~→-determ ↑⨟id      ↑⨟id      = refl
-~→-determ ↑⨟•       ↑⨟•       = refl
-~→-determ (↑⨟ σ~→τ) (↑⨟ σ~→υ) rewrite ~→-determ σ~→τ σ~→υ = refl
-~→-determ •⨟        •⨟        = refl
-~→-determ ⨟⨟        ⨟⨟        = refl
-
-—→-determ : L —→ M → L —→ N → M ≡ N
-—→-determ (ξ-ƛ L—→M)    (ξ-ƛ L—→N)    rewrite —→-determ L—→M L—→N = refl
-—→-determ (β-ƛ VM)      (β-ƛ _)       = refl
-—→-determ (β-ƛ VM)      (ξ-· L—→N)    = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→N)
-—→-determ (ξ-· L—→M)    (β-ƛ VM)      = ⊥-elim (Normal-¬—→ (V-ƛ VM) L—→M)
-—→-determ (ξ-· L—→M)    (ξ-· L—→N)    rewrite —→-determ L—→M L—→N = refl
-—→-determ (ξ-· L—→M)    (ξ-I IL L—→N) = ⊥-elim (Neutral-¬—→ IL L—→M)
-—→-determ (ξ-I IL L—→M) (ξ-· L—→N)    = ⊥-elim (Neutral-¬—→ IL L—→N)
-—→-determ (ξ-I IL L—→M) (ξ-I _ L—→N)  rewrite —→-determ L—→M L—→N = refl
-—→-determ σ-⋆           σ-⋆           = refl
-—→-determ σ-•           σ-•           = refl
-—→-determ (σ-ξ σ~→τ)    (σ-ξ σ~→υ)    rewrite ~→-determ σ~→τ σ~→υ = refl
-—→-determ σ-·           σ-·           = refl
-—→-determ σ-ƛ           σ-ƛ           = refl
-—→-determ σ-⨟           σ-⨟           = refl
-
-infix  2 _—↠_
-infix  1 begin_
-infixr 2 _—→⟨_⟩_
-infix  3 _∎
-
-data _—↠_ : Γ ⊢ A → Γ ⊢ A → Set where
-  _∎ :
-      (M : Γ ⊢ A)
-    → ------------
-      M —↠ M
-
-  step—→ :
-      (L : Γ ⊢ A)
-      (M—↠N : M —↠ N)
-      (L—→M : L —→ M)
-    → ----------------
-      L —↠ N
-
-pattern _—→⟨_⟩_ L L—→M M—↠N = step—→ L M—↠N L—→M
-
-begin_ : M —↠ N → M —↠ N
-begin M—↠N = M—↠N
-
--- determism implies confluence
-confluence : L —↠ M → L —↠ M' → ∃[ N ] (M —↠ N) × (M' —↠ N)
-confluence (L ∎)                  L—→M'                   = _ , L—→M' , (_ ∎)
-confluence (step—→ L M₁—↠M L—→M₁) (_ ∎)                   = _ , (_ ∎) , step—→ L M₁—↠M L—→M₁
-confluence (step—→ L M₁—↠M L—→M₁) (step—→ _ M₂—↠M' L—→M₂) rewrite —→-determ L—→M₁ L—→M₂ = confluence M₁—↠M M₂—↠M'
-
-module example where
-  -- λ x → y x
-  foo : ∅ ,- `ℕ ⇒ `ℕ ⊢ `ℕ ⇒ `ℕ
-  foo = ƛ ⋆ [ ↑ ] · ⋆
-
-  bar : ∅ ⊢ `ℕ ⇒ `ℕ
-  bar = ƛ (ƛ (ƛ ⋆) · ((ƛ ⋆) · ⋆)) · ((ƛ ⋆) · ⋆)
-
+  -- confluence of the basic rewriting system
+  confluence : L —↠ M → L —↠ M' → ∃[ N ] (M —↠ N) × (M' —↠ N)
+  confluence ε                L—↠M'               = _ , L—↠M' , ε
+  confluence L—→M             ε                   = _ , ε , L—→M
+  confluence (β-ƛ VM ◅ L₁—↠M) (β-ƛ VM₁ ◅ L₁'—↠M') = confluence L₁—↠M L₁'—↠M'
+  confluence (σ-⋆ ◅ L₁—↠M)    (σ-⋆ ◅ L₁'—↠M')     = confluence L₁—↠M L₁'—↠M'
+  confluence (σ-• ◅ L₁—↠M)    (σ-• ◅ L₁'—↠M')     = confluence L₁—↠M L₁'—↠M'
+  confluence (σ-· ◅ L₁—↠M)    (σ-· ◅ L₁'—↠M')     = confluence L₁—↠M L₁'—↠M'
+  confluence (σ-ƛ ◅ L₁—↠M)    (σ-ƛ ◅ L₁'—↠M')     = confluence L₁—↠M L₁'—↠M'
+  confluence (σ-⨟ ◅ L₁—↠M)    (σ-⨟ ◅ L₁'—↠M')     = confluence L₁—↠M L₁'—↠M'
+ 
