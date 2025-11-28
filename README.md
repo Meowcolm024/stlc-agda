@@ -15,3 +15,4 @@ You can also checkout [the highlighted html version](https://meowcolm024.github.
 - [Explicit substitutions](https://pauillac.inria.fr/~levy/pubs/90popljfp.pdf)
 - [A concrete framework for environment machines](https://www.brics.dk/RS/05/15/BRICS-RS-05-15.pdf)
 - [POPLMark reloaded: Mechanizing proofs by logical relations](https://poplmark-reloaded.github.io)
+- [System F in Agda, for Fun and Profit](https://doi.org/10.1007/978-3-030-33636-3_10)
