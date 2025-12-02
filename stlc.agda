@@ -28,3 +28,6 @@ import stlc.subst
 
 -- closure calculus
 import stlc.clos
+
+-- extra stuff
+import extra
